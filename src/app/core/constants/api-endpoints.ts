@@ -232,6 +232,12 @@ public DELETE_REGION= `${this.PATH}/deleteRegion`
   GET_PHOTO_CATEGORY_BY_ID= `${this.PATH}/category-photos`; // append /:id
   DELETE_PHOTO_CATEGORY= `${this.PATH}/category-photos`; // append /:id
   REMOVE_IMAGE= `${this.PATH}/category-photos`;
+
+   
+
+  public UPDATE_BANNER_REQUEST_STATUS = `${this.PATH1}/mobile/updateBannerRequestStatus`;
+  public GET_BANNER_REQUESTS= `${this.PATH1}mobile/getBannerRequests`;
+
   };
   
 

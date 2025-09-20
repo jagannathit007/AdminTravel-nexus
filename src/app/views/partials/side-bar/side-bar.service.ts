@@ -118,11 +118,16 @@ export class SideBarService {
               link: 'regions',
               icon: 'map-signs',
             },
-            // {
-            //   title:'Banner rates',
-            //   link:'bannerRates',
-            //   icon:'advertisement'
-            // },
+            {
+              title:'Banner rates',
+              link:'bannerRates',
+              icon:'advertisement'
+            },
+            {
+              title:'Banner Request',
+              link:'bannerRequest',
+              icon:'banner'
+            },
 
             {
               title: 'Brand Templates',

@@ -57,7 +57,8 @@ import { AdminComplaintComponent } from './views/pages/admin-complaint/admin-com
 import { AdminFeedbackComponent } from './views/pages/admin-feedback/admin-feedback.component';
 import { NewUserRegistrationComponent } from './views/pages/new-user-registration/new-user-registration.component';
 import { NewEventsComponent } from './views/pages/new-events/new-events.component';
-import {EventPaymentsComponent} from './views/pages/paymentStatus/payment.component'
+import {EventPaymentsComponent} from './views/pages/paymentStatus/payment.component';
+import { BannerRequestsComponent } from './views/pages/bannerRequest/bannerRequest.component';
 
 
 export const routes: Routes = [
@@ -109,8 +110,9 @@ export const routes: Routes = [
       { path: 'fees', component: FeesComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       { path: 'badges', component: BadgesComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       {
-        path: 'badgeManagement', component: BadgeManagementComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] }
+        path: 'badgeManagement', component: BadgeManagementComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] },
       },
+      {path:'bannerRequest', component: BannerRequestsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] }},
 
 
       { path: 'finance', component: FinanceComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },

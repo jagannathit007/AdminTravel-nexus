@@ -1,0 +1,355 @@
+<div class="container-fluid">
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+    <div class="card-header bg-gradient-primary d-flex justify-content-between align-items-center py-3">
+      <h4 class="mb-0 fw-bold text-white">
+        <i class="bi bi-flag me-2"></i>Banner Request Management
+      </h4>
+    </div>
+    <div class="card-body p-0">
+      <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+        <div class="d-flex w-100 align-items-center">
+          <div class="flex-grow-1 me-2">
+            <input type="text" class="form-control"
+                  placeholder="Search banner requests..."
+                  [(ngModel)]="searchQuery"
+                  (input)="onSearch()">
+          </div>
+          <div>
+            <ng-select [items]="[10,25,50,100]" (change)="onChange()" [(ngModel)]="payload.limit" placeholder="Items per page"></ng-select>
+          </div>
+        </div>
+      </div>
+    </div>
+     
+    <div *ngIf="loading" class="text-center my-5 py-5">
+      <div class="spinner-grow text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading && bannerRequests?.docs && bannerRequests.docs.length > 0">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th class="ps-4 py-3">Banner</th>
+            <th class="py-3">User Details</th>
+            <th class="py-3">Banner Info</th>
+            <th class="py-3">Schedule</th>
+            <th class="py-3">Payment</th>
+            <th class="py-3">Status</th>
+            <th class="text-end pe-4 py-3">Action</th>
+          </tr>
+        </thead>
+        
+        <tbody>
+          <tr *ngFor="let banner of bannerRequests.docs | paginate: { itemsPerPage: payload.limit, currentPage: payload.page, totalItems: bannerRequests.totalDocs }; let i=index" class="border-bottom">
+            <td class="ps-4 py-3">
+              <div class="d-flex align-items-center">
+                <div class="banner-image-container me-3 position-relative" style="cursor: pointer;" (click)="openBannerPreview(banner)">
+                  <img *ngIf="banner.image" 
+                       [src]="getImageUrl(banner.image)" 
+                       alt="Banner Image"
+                       class="banner-thumbnail rounded shadow-sm"
+                       style="width: 80px; height: 60px; object-fit: cover;">
+                  <div *ngIf="!banner.image" 
+                       class="bg-gradient-primary rounded d-flex align-items-center justify-content-center shadow-sm"
+                       style="width: 80px; height: 60px; color: white;">
+                    <i class="bi bi-image"></i>
+                  </div>
+                  <div class="position-absolute top-0 end-0 bg-dark bg-opacity-75 rounded-circle p-1" 
+                       style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin: 2px;">
+                    <i class="bi bi-eye text-white" style="font-size: 12px;"></i>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="py-3">
+              <div class="fw-bold text-dark">{{getUserDisplayName(banner.userId)}}</div>
+              <small class="text-muted" *ngIf="banner.userId?.email">{{banner.userId?.email}}</small>
+              <div class="text-muted small" *ngIf="banner.contact">
+                <i class="bi bi-telephone me-1"></i>{{banner.contact}}
+              </div>
+            </td>
+            <td class="py-3">
+              <div class="fw-bold text-dark">{{banner.title || 'Untitled'}}</div>
+              <div class="text-muted small mb-1">{{banner.description || 'No description'}}</div>
+              <div class="text-primary small" *ngIf="banner.redirectUrl">
+                <i class="bi bi-link-45deg me-1"></i>
+                <a [href]="banner.redirectUrl" target="_blank" class="text-decoration-none">{{banner.redirectUrl}}</a>
+              </div>
+              <div class="text-success small mt-1">
+                <i class="bi bi-currency-rupee me-1"></i>{{formatCurrency(banner.amount)}}
+              </div>
+            </td>
+            <td class="py-3">
+              <div class="small">
+                <div class="text-muted mb-1">
+                  <strong>From:</strong> {{formatDate(banner.fromDate)}}
+                </div>
+                <div class="text-muted mb-1">
+                  <strong>To:</strong> {{formatDate(banner.toDate)}}
+                </div>
+                <div class="text-info">
+                  <i class="bi bi-calendar-check me-1"></i>
+                  {{calculateDuration(banner.fromDate, banner.toDate)}} days
+                </div>
+              </div>
+            </td>
+            <td class="py-3">
+              <div *ngIf="banner.paymentDetails || banner.paymentId; else noPayment">
+                <span class="badge rounded-pill" 
+                      [ngClass]="getPaymentStatusClass(getPaymentData(banner))">
+                  {{getPaymentStatusText(getPaymentData(banner))}}
+                </span>
+                <div class="text-muted small mt-1" *ngIf="getPaymentData(banner)">
+                  {{getPaymentData(banner)?.paymentMethod | titlecase}}
+                </div>
+                <div class="small mt-1" *ngIf="hasPaymentScreenshot(banner)">
+                  <button class="btn btn-sm btn-outline-info" 
+                          (click)="openPaymentScreenshot(getPaymentScreenshotUrl(banner))">
+                    <i class="bi bi-image me-1"></i>Screenshot
+                  </button>
+                </div>
+              </div>
+              <ng-template #noPayment>
+                <span class="badge bg-secondary rounded-pill">No Payment</span>
+              </ng-template>
+            </td>
+            <td class="py-3">
+              <span class="badge rounded-pill" 
+                    [ngClass]="getStatusClass(banner.status)">
+                {{getStatusLabel(banner.status)}}
+              </span>
+            </td>
+            <td class="text-end pe-4 py-3">
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-primary rounded-pill dropdown-toggle" type="button" 
+                  data-bs-toggle="dropdown" aria-expanded="false">
+                  Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                  <li><a class="dropdown-item" (click)="openBannerPreview(banner)" style="cursor: pointer;">
+                    <i class="bi bi-eye-fill me-2 text-info"></i> View Details
+                  </a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" (click)="openStatusUpdateModal(banner)" style="cursor: pointer;">
+                    <i class="bi bi-arrow-repeat me-2 text-primary"></i> Update Status
+                  </a></li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div class="d-flex justify-content-end p-3">
+        <pagination-controls (pageChange)="onPageChange($event)"></pagination-controls>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && (!bannerRequests?.docs || bannerRequests.docs.length === 0)" class="text-center my-5 py-4 px-4">
+      <div class="empty-state">
+        <i class="bi bi-flag fs-1 text-muted mb-3"></i>
+        <h5>No Banner Requests Found</h5>
+        <p class="text-muted">Try adjusting your search criteria.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Banner Preview Modal -->
+<div class="modal fade" id="bannerPreviewModal" tabindex="-1" role="dialog" aria-labelledby="bannerPreviewModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+    <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="bannerPreviewModalTitle">
+          <i class="bi bi-flag me-2"></i>Banner Request Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0" *ngIf="selectedBannerForPreview">
+        <div class="row g-0">
+          <div class="col-md-8">
+            <div class="position-relative">
+              <img [src]="getImageUrl(selectedBannerForPreview.image)" 
+                   [alt]="selectedBannerForPreview.title"
+                   class="img-fluid w-100"
+                   style="max-height: 500px; object-fit: contain; background: #f8f9fa;">
+              <div class="position-absolute top-0 end-0 m-2">
+                <span class="badge rounded-pill" 
+                      [ngClass]="getStatusClass(selectedBannerForPreview.status)">
+                  {{getStatusLabel(selectedBannerForPreview.status)}}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-4 bg-light">
+            <div class="p-4">
+              <h4 class="fw-bold text-dark mb-3">{{selectedBannerForPreview.title || 'Untitled'}}</h4>
+              
+              <div class="mb-3" *ngIf="selectedBannerForPreview.description">
+                <h6 class="text-muted mb-2">Description</h6>
+                <p class="text-dark">{{selectedBannerForPreview.description}}</p>
+              </div>
+
+              <div class="mb-3" *ngIf="selectedBannerForPreview.userId">
+                <h6 class="text-muted mb-2">Requested By</h6>
+                <p class="text-dark mb-1">{{getUserDisplayName(selectedBannerForPreview.userId)}}</p>
+                <p class="text-muted small" *ngIf="selectedBannerForPreview.userId?.email">{{selectedBannerForPreview.userId.email}}</p>
+                <p class="text-muted small" *ngIf="selectedBannerForPreview.contact">
+                  <i class="bi bi-telephone me-1"></i>{{selectedBannerForPreview.contact}}
+                </p>
+              </div>
+
+              <div class="mb-3" *ngIf="selectedBannerForPreview.redirectUrl">
+                <h6 class="text-muted mb-2">Redirect URL</h6>
+                <a [href]="selectedBannerForPreview.redirectUrl" target="_blank" class="text-primary text-decoration-none small">
+                  <i class="bi bi-link-45deg me-1"></i>{{selectedBannerForPreview.redirectUrl}}
+                </a>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-6">
+                  <h6 class="text-muted mb-2">From Date</h6>
+                  <p class="text-dark">{{formatDate(selectedBannerForPreview.fromDate)}}</p>
+                </div>
+                <div class="col-6">
+                  <h6 class="text-muted mb-2">To Date</h6>
+                  <p class="text-dark">{{formatDate(selectedBannerForPreview.toDate)}}</p>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-6">
+                  <h6 class="text-muted mb-2">Duration</h6>
+                  <p class="text-dark">{{calculateDuration(selectedBannerForPreview.fromDate, selectedBannerForPreview.toDate)}} days</p>
+                </div>
+                <div class="col-6">
+                  <h6 class="text-muted mb-2">Amount</h6>
+                  <p class="text-success fw-bold">{{formatCurrency(selectedBannerForPreview.amount)}}</p>
+                </div>
+              </div>
+
+              <div class="mb-3" *ngIf="getPaymentData(selectedBannerForPreview)">
+                <h6 class="text-muted mb-2">Payment Details</h6>
+                <div class="bg-white p-3 rounded border">
+                  <p class="mb-2">
+                    <span class="badge rounded-pill" 
+                          [ngClass]="getPaymentStatusClass(getPaymentData(selectedBannerForPreview))">
+                      {{getPaymentStatusText(getPaymentData(selectedBannerForPreview))}}
+                    </span>
+                  </p>
+                  <p class="small mb-1">
+                    <strong>Method:</strong> {{getPaymentData(selectedBannerForPreview)?.paymentMethod | titlecase}}
+                  </p>
+                  <p class="small mb-1" *ngIf="getTransactionId(getPaymentData(selectedBannerForPreview))">
+                    <strong>Transaction ID:</strong> {{getTransactionId(getPaymentData(selectedBannerForPreview))}}
+                  </p>
+                  <p class="small mb-1" *ngIf="getUpiTransactionId(getPaymentData(selectedBannerForPreview))">
+                    <strong>UPI ID:</strong> {{getUpiTransactionId(getPaymentData(selectedBannerForPreview))}}
+                  </p>
+                  <button class="btn btn-sm btn-outline-info mt-2" 
+                          *ngIf="hasPaymentScreenshot(selectedBannerForPreview)"
+                          (click)="openPaymentScreenshot(getPaymentScreenshotUrl(selectedBannerForPreview))">
+                    <i class="bi bi-image me-1"></i>View Screenshot
+                  </button>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-12">
+                  <h6 class="text-muted mb-2">Created</h6>
+                  <p class="text-dark">{{formatDateTime(selectedBannerForPreview.createdAt)}}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-primary rounded-pill me-2" 
+                *ngIf="selectedBannerForPreview"
+                (click)="openStatusUpdateModal(selectedBannerForPreview)" 
+                data-bs-dismiss="modal">
+          <i class="bi bi-arrow-repeat me-1"></i>Update Status
+        </button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Screenshot Modal -->
+<div class="modal fade" id="paymentScreenshotModal" tabindex="-1" role="dialog" aria-labelledby="paymentScreenshotModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+    <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="paymentScreenshotModalTitle">
+          <i class="bi bi-image me-2"></i>Payment Screenshot
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0 text-center" *ngIf="selectedPaymentScreenshot">
+        <img [src]="getImageUrl(selectedPaymentScreenshot)" 
+             alt="Payment Screenshot"
+             class="img-fluid w-100"
+             style="max-height: 70vh; object-fit: contain; background: #f8f9fa;">
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Status Update Modal -->
+<div class="modal fade" id="statusUpdateModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" role="dialog" aria-labelledby="statusUpdateModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="statusUpdateModalTitle">
+          <i class="bi bi-arrow-repeat me-2"></i>Update Banner Status
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" *ngIf="selectedBannerForStatusUpdate">
+        <div class="mb-3">
+          <h6 class="fw-bold">{{selectedBannerForStatusUpdate.title}}</h6>
+          <p class="text-muted small">by {{getUserDisplayName(selectedBannerForStatusUpdate.userId)}}</p>
+        </div>
+        
+        <div class="mb-3">
+          <label for="statusSelect" class="form-label">Select New Status <span class="text-danger">*</span></label>
+          <select class="form-select" id="statusSelect" [(ngModel)]="newStatus">
+            <option *ngFor="let status of statusOptions" [value]="status.value">
+              {{status.label}}
+            </option>
+          </select>
+        </div>
+
+        <div class="alert alert-info" role="alert">
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>Current Status:</strong> 
+          <span class="badge rounded-pill ms-2" [ngClass]="getStatusClass(selectedBannerForStatusUpdate.status)">
+            {{getStatusLabel(selectedBannerForStatusUpdate.status)}}
+          </span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-primary rounded-pill" 
+                (click)="updateBannerStatus()" 
+                [disabled]="loading || newStatus === selectedBannerForStatusUpdate?.status">
+          <i class="bi bi-check-circle me-1"></i>Update Status
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

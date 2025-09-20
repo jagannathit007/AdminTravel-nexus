@@ -4833,6 +4833,7 @@ export interface RemoveImageRequest {
 
     }
     
+
     export interface BannerRate {
   _id: string;
   days: number;
@@ -5581,6 +5582,156 @@ export class FinanceService {
           throw new Error(error.response?.data?.message || 'Failed to fetch applications');
         }
       }}
+
+      // Add these interfaces to your existing service.ts file
+
+export interface BannerRequestUser {
+  _id: string;
+  name: string;
+  email: string;
+  business_name: string;
+}
+
+export interface PaymentDetails {
+  _id: string;
+  paymentMethod: string;
+  amount: number;
+  currency: string;
+  status: string;
+  transactionId: string;
+  upiTransactionId: string;
+  paymentScreenshotUrl: string;
+  isApproved: boolean;
+  createdAt: string;
+}
+
+export interface BannerRequestUser {
+  _id: string;
+  name: string;
+  email: string;
+  business_name: string;
+}
+
+export interface PaymentDetails {
+  _id: string;
+  paymentMethod: string;
+  amount: number;
+  currency: string;
+  status: string;
+  transactionId: string;
+  upiTransactionId: string;
+  paymentScreenshotUrl: string;
+  isApproved: boolean;
+  createdAt: string;
+}
+
+export interface BannerRequest {
+  _id: string;
+  userId: BannerRequestUser | null;
+  title: string;
+  description: string;
+  image: string;
+  redirectUrl: string;
+  contact: string;
+  fromDate: string;
+  toDate: string;
+  days: number;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected' | 'live' | 'expired';
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+  paymentId?: PaymentDetails;
+  paymentDetails?: PaymentDetails;
+}
+
+export interface BannerRequestResponse {
+  docs: BannerRequest[];
+  totalDocs: number;
+  limit: number;
+  page: number;
+  totalPages: number;
+  pagingCounter: number;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
+  prevPage: number | null;
+  nextPage: number | null;
+}
+
+// Add this service class to your existing service file or create a new service
+
+@Injectable({
+  providedIn: 'root',
+})
+export class BannerRequestService {
+  private headers: any = [];
+
+  constructor(private apiManager: ApiManager, private storage: AppStorage) {}
+
+  private getHeaders = () => {
+    this.headers = [];
+    let token = this.storage.get(common.TOKEN);
+    
+    if (token != null) {
+      this.headers.push({ Authorization: `Bearer ${token}` });
+    }
+  };
+
+  async getAllBannerRequests(data: { page: number; limit: number; search: string }): Promise<any> {
+    try {
+      this.getHeaders();
+      
+      let queryParams = `?page=${data.page}&limit=${data.limit}`;
+      if (data.search) {
+        queryParams += `&search=${encodeURIComponent(data.search)}`;
+      }
+      
+      const response = await this.apiManager.request(
+        {
+          url: 'https://travelnexus.itfuturz.in/mobile/getBannerRequests',
+          method: 'GET',
+        },
+        null,
+         this.headers
+      
+      );
+      console.log("response", response)
+      
+      return response;
+    } catch (error) {
+      console.error('API Error:', error);
+      swalHelper.showToast('Failed to fetch banner requests', 'error');
+      throw error;
+    }
+  }
+
+  
+
+  async updateBannerRequestStatus(id: string, status: string): Promise<any> {
+    try {
+      this.getHeaders();
+      
+      const response = await this.apiManager.request(
+        {
+          url: `${apiEndpoints.UPDATE_BANNER_REQUEST_STATUS}/${id}`,
+          
+          method: 'PUT',
+        },
+        { status },
+        this.headers
+      );
+      
+      return response;
+    } catch (error: any) {
+      console.error('Update Banner Status Error:', error);
+      if (error && error.error) {
+        return error.error;
+      }
+      swalHelper.showToast('Failed to update banner status', 'error');
+      throw error;
+    }
+  }
+}
       export interface EventRegistration {
         id: string;
         userType: string;
