@@ -941,6 +941,28 @@ export class EventService {
         }
     }
 
+    async updateRegistrationStatus(registrationId: string, status: string): Promise<any> {
+        try {
+            this.getHeaders();
+            const response = await this.apiManager.request(
+                {
+                    url: apiEndpoints.UPDATE_REGISTRATION_STATUS,
+                    method: 'POST',
+                },
+                {
+                    registrationId,
+                    status
+                },
+                this.headers
+            );
+            return response;
+        } catch (error) {
+            console.error('Update Registration Status Error:', error);
+            swalHelper.showToast('Failed to update registration status', 'error');
+            throw error;
+        }
+    }
+
 
     async getAllEvents(): Promise<Event[]> {
         try {
@@ -5283,6 +5305,7 @@ export class FinanceService {
       title: string;
       description: string;
       price: number;
+      
       category: string;
       productImages: string[];
       userId: {
@@ -5732,6 +5755,186 @@ export class BannerRequestService {
     }
   }
 }
+
+// Coupon Interfaces
+export interface Coupon {
+  _id: string;
+  code: string;
+  title: string;
+  description: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderAmount: number;
+  maxDiscountAmount: number | null;
+  validFrom: string;
+  validUntil: string;
+  usageLimit: number;
+  usedCount: number;
+  perUserLimit: number;
+  applicableEvents: any[];
+  applicableEventTypes: string[];
+  isActive: boolean;
+  image: string;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
+
+export interface CouponResponse {
+  coupons: Coupon[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class CouponService {
+  private headers: any = [];
+  
+  constructor(private apiManager: ApiManager, private storage: AppStorage) {}
+  
+  private getHeaders = () => {
+    this.headers = [];
+    let token = this.storage.get(common.TOKEN);
+    
+    if (token != null) {
+      this.headers.push({ Authorization: `Bearer ${token}` });
+    }
+  };
+
+  async getCoupons(data: { 
+    page: number; 
+    limit: number; 
+    search?: string; 
+    isActive?: any;
+    discountType?: string;
+    status?: string;
+  }): Promise<any> {
+    try {
+      this.getHeaders();
+      
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.GET_COUPONS,
+          method: 'POST',
+        },
+        data,
+        this.headers
+      );
+      
+      return response;
+    } catch (error) {
+      console.error('API Error:', error);
+      swalHelper.showToast('Failed to fetch coupons', 'error');
+      throw error;
+    }
+  }
+
+  async createCoupon(formData: FormData): Promise<any> {
+    try {
+      this.getHeaders();
+      
+      // For file uploads, don't set Content-Type header, let browser set it
+      const fileHeaders = this.headers.filter((header: any) => !header['Content-Type']);
+      
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.CREATE_COUPON,
+          method: 'POST',
+        },
+        formData,
+        fileHeaders
+      );
+      
+      return response;
+    } catch (error: any) {
+      console.error('Create Coupon Error:', error);
+      
+      if (error && error.error) {
+        return error.error;
+      }
+      swalHelper.showToast('Failed to create coupon', 'error');
+      throw error;
+    }
+  }
+
+  async updateCoupon(id: string, formData: FormData): Promise<any> {
+    try {
+      this.getHeaders();
+      
+      // For file uploads, don't set Content-Type header, let browser set it
+      const fileHeaders = this.headers.filter((header: any) => !header['Content-Type']);
+      
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.UPDATE_COUPON.replace(':id', id),
+          method: 'PUT',
+        },
+        formData,
+        fileHeaders
+      );
+      
+      return response;
+    } catch (error: any) {
+      console.error('Update Coupon Error:', error);
+      
+      if (error && error.error) {
+        return error.error;
+      }
+      swalHelper.showToast('Failed to update coupon', 'error');
+      throw error;
+    }
+  }
+
+  async getCouponById(id: string): Promise<any> {
+    try {
+      this.getHeaders();
+      
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.GET_COUPON_BY_ID.replace(':couponId', id),
+          method: 'GET',
+        },
+        null,
+        this.headers
+      );
+      
+      return response;
+    } catch (error) {
+      console.error('Get Coupon Error:', error);
+      swalHelper.showToast('Failed to fetch coupon', 'error');
+      throw error;
+    }
+  }
+
+  async deleteCoupon(id: string): Promise<any> {
+    try {
+      this.getHeaders();
+      
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.DELETE_COUPON.replace(':couponId', id),
+          method: 'DELETE',
+        },
+        null,
+        this.headers
+      );
+      
+      return response;
+    } catch (error) {
+      console.error('Delete Coupon Error:', error);
+      swalHelper.showToast('Failed to delete coupon', 'error');
+      throw error;
+    }
+  }
+}
+
       export interface EventRegistration {
         id: string;
         userType: string;

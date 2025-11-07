@@ -128,6 +128,11 @@ export class SideBarService {
               link:'bannerRequest',
               icon:'banner'
             },
+            {
+              title:'Coupon Master',
+              link:'couponMaster',
+              icon:'ticket-perforated'
+            },
 
             {
               title: 'Brand Templates',

@@ -149,8 +149,8 @@ export class BannersComponent implements OnInit, AfterViewInit {
     img.onload = () => {
       const width = img.width;
       const height = img.height;
-      const requiredWidth = 1200;
-      const requiredHeight = 400;
+      const requiredWidth = 300;
+      const requiredHeight = 160;
 
       if (width !== requiredWidth || height !== requiredHeight) {
         swalHelper.showToast(`Image must be ${requiredWidth}x${requiredHeight} pixels`, 'error');

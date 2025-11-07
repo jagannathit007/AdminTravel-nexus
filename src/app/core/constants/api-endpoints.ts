@@ -225,6 +225,7 @@ public DELETE_REGION= `${this.PATH}/deleteRegion`
 
   public UPDATE_PAYMENT_STATUS = `${this.PATH1}/mobile/updatePaymentStatus`
   public GET_REGISTRATIONS_BY_EVENT_ID = `${this.PATH1}/mobile/getRegistrationsByEventId`
+  public UPDATE_REGISTRATION_STATUS = `${this.PATH1}/admin/registerationStatusUpdate`
 
 
   GET_ALL_CATEGORIES= `${this.PATH}/category-photos/list`;
@@ -237,6 +238,13 @@ public DELETE_REGION= `${this.PATH}/deleteRegion`
 
   public UPDATE_BANNER_REQUEST_STATUS = `${this.PATH1}/mobile/updateBannerRequestStatus`;
   public GET_BANNER_REQUESTS= `${this.PATH1}mobile/getBannerRequests`;
+
+  // Coupon Management
+  public CREATE_COUPON = `${this.PATH1}/admin/createCoupon`;
+  public UPDATE_COUPON = `${this.PATH1}/admin/updateCoupon/:id`;
+  public GET_COUPONS = `${this.PATH1}/admin/getCoupons`;
+  public GET_COUPON_BY_ID = `${this.PATH1}/admin/coupon/:couponId`;
+  public DELETE_COUPON = `${this.PATH1}/admin/deleteCoupon/:couponId`;
 
   };
   

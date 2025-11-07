@@ -362,6 +362,20 @@
               <i class="bi bi-calendar-week me-2"></i>Event Schedule
             </button>
           </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link fw-semibold"
+              id="coupon-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#coupon"
+              type="button"
+              role="tab"
+              aria-controls="coupon"
+              aria-selected="false"
+            >
+              <i class="bi bi-ticket-perforated me-2"></i>Coupon (Optional)
+            </button>
+          </li>
         </ul>
 
         <!-- Tab Content -->
@@ -407,6 +421,7 @@
                     [(ngModel)]="eventForm.eventType"
                     name="eventType"
                     required
+                    (change)="onEventTypeChange(false)"
                     (blur)="onFieldBlur('eventType')"
                     [class.is-invalid]="validationErrors.eventType"
                   >
@@ -555,6 +570,7 @@
                     [(ngModel)]="eventForm.location"
                     name="location"
                     required
+                    [readonly]="eventForm.eventType === 'online'"
                     (blur)="onFieldBlur('location')"
                     [class.is-invalid]="validationErrors.location"
                   />
@@ -566,12 +582,14 @@
                   </div>
                 </div>
                 <div class="col-md-6 mb-3">
-                  <label for="venue" class="form-label">Venue</label>
+                  <label for="venue" class="form-label">
+                    {{ eventForm.eventType === 'online' ? 'Platform' : 'Venue' }}
+                  </label>
                   <input
                     type="text"
                     class="form-control"
                     id="venue"
-                    placeholder="Enter venue name"
+                    [placeholder]="eventForm.eventType === 'online' ? 'Enter platform (e.g., zoom)' : 'Enter venue name'"
                     [(ngModel)]="eventForm.venue"
                     name="venue"
                     (blur)="onFieldBlur('venue')"
@@ -581,34 +599,48 @@
 
               <div class="row">
                 <div class="col-12 mb-3">
-                  <label for="mapUrl" class="form-label">Map URL</label>
+                  <label for="mapUrl" class="form-label">
+                    {{ eventForm.eventType === 'online' ? 'Zoom URL' : 'Map URL' }}
+                  </label>
                   <div class="input-group">
                     <input
                       type="url"
                       class="form-control"
                       id="mapUrl"
-                      placeholder="Enter map URL or search location"
+                      [placeholder]="eventForm.eventType === 'online' ? 'Enter Zoom meeting URL' : 'Enter map URL or search location'"
                       [(ngModel)]="eventForm.mapUrl"
                       name="mapUrl"
+                      [required]="eventForm.eventType === 'online'"
                       (blur)="onFieldBlur('mapUrl')"
+                      [class.is-invalid]="validationErrors.mapUrl"
                     />
+                    <div
+                      class="invalid-feedback"
+                      *ngIf="validationErrors.mapUrl"
+                    >
+                      {{ validationErrors.mapUrl }}
+                    </div>
                     <button
                       type="button"
                       class="btn btn-outline-primary"
                       (click)="openGoogleMapsSearch()"
+                      *ngIf="eventForm.eventType !== 'online'"
                     >
                       <i class="bi bi-search me-1"></i>Search on Maps
                     </button>
                   </div>
-                  <small class="text-muted"
+                  <small class="text-muted" *ngIf="eventForm.eventType !== 'online'"
                     >You can paste a Google Maps URL or use the search button to
                     find a location</small
+                  >
+                  <small class="text-muted" *ngIf="eventForm.eventType === 'online'"
+                    >Enter the Zoom meeting URL for the online event</small
                   >
                 </div>
               </div>
 
-              <!-- Map Preview (if URL is provided) -->
-              <div class="row" *ngIf="eventForm.mapUrl">
+              <!-- Map Preview (if URL is provided and not online) -->
+              <div class="row" *ngIf="eventForm.mapUrl && eventForm.eventType !== 'online'">
                 <div class="col-12">
                   <div class="card border-0 shadow-sm">
                     <div class="card-body">
@@ -1482,6 +1514,50 @@
               </div>
             </div>
           </div>
+
+          <!-- Coupon Tab Content -->
+          <div
+            class="tab-pane fade"
+            id="coupon"
+            role="tabpanel"
+            aria-labelledby="coupon-tab"
+          >
+            <div class="mb-4">
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <h6 class="text-primary mb-3">
+                    <i class="bi bi-ticket-perforated me-2"></i>Select Coupon (Optional)
+                  </h6>
+                  <p class="text-muted small mb-3">
+                    Choose a coupon to apply to this event. Event registrants can use this coupon during registration.
+                  </p>
+                  
+                  <div class="mb-3">
+                    <label class="form-label">Coupon</label>
+                    <select 
+                      class="form-select" 
+                      [(ngModel)]="eventForm.couponId"
+                      name="couponId"
+                      [disabled]="loadingCoupons"
+                    >
+                      <option value="">Select a coupon (Optional)</option>
+                      <option *ngFor="let coupon of coupons" [value]="coupon._id">
+                        {{coupon.title}} ({{coupon.code}}) - {{coupon.discountType === 'percentage' ? coupon.discountValue + '%' : '₹' + coupon.discountValue}}
+                      </option>
+                    </select>
+                    <div *ngIf="loadingCoupons" class="mt-2">
+                      <small class="text-muted">
+                        <i class="bi bi-hourglass-split me-1"></i>Loading coupons...
+                      </small>
+                    </div>
+                    <small class="form-text text-muted">
+                      <i class="bi bi-info-circle me-1"></i>Only active coupons are shown. Leave empty if no coupon is needed.
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1613,6 +1689,20 @@
               <i class="bi bi-calendar-week me-2"></i>Event Schedule
             </button>
           </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link fw-semibold"
+              id="edit-coupon-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#edit-coupon"
+              type="button"
+              role="tab"
+              aria-controls="edit-coupon"
+              aria-selected="false"
+            >
+              <i class="bi bi-ticket-perforated me-2"></i>Coupon (Optional)
+            </button>
+          </li>
         </ul>
 
         <!-- Tab Content -->
@@ -1661,6 +1751,7 @@
                     [(ngModel)]="editEventForm.eventType"
                     name="editEventType"
                     required
+                    (change)="onEventTypeChange(true)"
                     (blur)="onFieldBlur('eventType', true)"
                     [class.is-invalid]="editValidationErrors.eventType"
                   >
@@ -1809,6 +1900,7 @@
                     [(ngModel)]="editEventForm.location"
                     name="editLocation"
                     required
+                    [readonly]="editEventForm.eventType === 'online'"
                     (blur)="onFieldBlur('location', true)"
                     [class.is-invalid]="editValidationErrors.location"
                   />
@@ -1820,12 +1912,14 @@
                   </div>
                 </div>
                 <div class="col-md-6 mb-3">
-                  <label for="editVenue" class="form-label">Venue</label>
+                  <label for="editVenue" class="form-label">
+                    {{ editEventForm.eventType === 'online' ? 'Platform' : 'Venue' }}
+                  </label>
                   <input
                     type="text"
                     class="form-control"
                     id="editVenue"
-                    placeholder="Enter venue name"
+                    [placeholder]="editEventForm.eventType === 'online' ? 'Enter platform (e.g., zoom)' : 'Enter venue name'"
                     [(ngModel)]="editEventForm.venue"
                     name="editVenue"
                     (blur)="onFieldBlur('venue', true)"
@@ -1835,34 +1929,48 @@
 
               <div class="row">
                 <div class="col-12 mb-3">
-                  <label for="editMapUrl" class="form-label">Map URL</label>
+                  <label for="editMapUrl" class="form-label">
+                    {{ editEventForm.eventType === 'online' ? 'Zoom URL' : 'Map URL' }}
+                  </label>
                   <div class="input-group">
                     <input
                       type="url"
                       class="form-control"
                       id="editMapUrl"
-                      placeholder="Enter map URL or search location"
+                      [placeholder]="editEventForm.eventType === 'online' ? 'Enter Zoom meeting URL' : 'Enter map URL or search location'"
                       [(ngModel)]="editEventForm.mapUrl"
                       name="editMapUrl"
+                      [required]="editEventForm.eventType === 'online'"
                       (blur)="onFieldBlur('mapUrl', true)"
+                      [class.is-invalid]="editValidationErrors.mapUrl"
                     />
+                    <div
+                      class="invalid-feedback"
+                      *ngIf="editValidationErrors.mapUrl"
+                    >
+                      {{ editValidationErrors.mapUrl }}
+                    </div>
                     <button
                       type="button"
                       class="btn btn-outline-primary"
                       (click)="openGoogleMapsSearch()"
+                      *ngIf="editEventForm.eventType !== 'online'"
                     >
                       <i class="bi bi-search me-1"></i>Search on Maps
                     </button>
                   </div>
-                  <small class="text-muted"
+                  <small class="text-muted" *ngIf="editEventForm.eventType !== 'online'"
                     >You can paste a Google Maps URL or use the search button to
                     find a location</small
+                  >
+                  <small class="text-muted" *ngIf="editEventForm.eventType === 'online'"
+                    >Enter the Zoom meeting URL for the online event</small
                   >
                 </div>
               </div>
 
-              <!-- Map Preview -->
-              <div class="row" *ngIf="editEventForm.mapUrl">
+              <!-- Map Preview (if URL is provided and not online) -->
+              <div class="row" *ngIf="editEventForm.mapUrl && editEventForm.eventType !== 'online'">
                 <div class="col-12">
                   <div class="card border-0 shadow-sm">
                     <div class="card-body">
@@ -2786,6 +2894,50 @@
               </div>
             </div>
           </div>
+
+          <!-- Edit Coupon Tab Content -->
+          <div
+            class="tab-pane fade"
+            id="edit-coupon"
+            role="tabpanel"
+            aria-labelledby="edit-coupon-tab"
+          >
+            <div class="mb-4">
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <h6 class="text-primary mb-3">
+                    <i class="bi bi-ticket-perforated me-2"></i>Select Coupon (Optional)
+                  </h6>
+                  <p class="text-muted small mb-3">
+                    Choose a coupon to apply to this event. Event registrants can use this coupon during registration.
+                  </p>
+                  
+                  <div class="mb-3">
+                    <label class="form-label">Coupon</label>
+                    <select 
+                      class="form-select" 
+                      [(ngModel)]="editEventForm.couponId"
+                      name="editCouponId"
+                      [disabled]="loadingCoupons"
+                    >
+                      <option value="">Select a coupon (Optional)</option>
+                      <option *ngFor="let coupon of coupons" [value]="coupon._id">
+                        {{coupon.title}} ({{coupon.code}}) - {{coupon.discountType === 'percentage' ? coupon.discountValue + '%' : '₹' + coupon.discountValue}}
+                      </option>
+                    </select>
+                    <div *ngIf="loadingCoupons" class="mt-2">
+                      <small class="text-muted">
+                        <i class="bi bi-hourglass-split me-1"></i>Loading coupons...
+                      </small>
+                    </div>
+                    <small class="form-text text-muted">
+                      <i class="bi bi-info-circle me-1"></i>Only active coupons are shown. Leave empty if no coupon is needed.
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3165,6 +3317,120 @@
                                   <i class="bi bi-person me-1"></i
                                   >{{ getSpeakerName(schedule.speakerId) }}
                                 </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coupon Section -->
+          <div class="row mb-4"
+            *ngIf="selectedEvent.coupons && selectedEvent.coupons.length > 0"
+          >
+            <div class="col-12">
+              <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3 text-primary">
+                    <i class="bi bi-ticket-perforated me-2"></i>Event Coupon
+                  </h6>
+                  <div class="row">
+                    <div
+                      class="col-md-6 mb-3"
+                      *ngFor="let coupon of selectedEvent.coupons"
+                    >
+                      <div class="card border border-primary h-100" *ngIf="isCouponObject(coupon)">
+                        <div class="card-body">
+                          <div class="row g-3">
+                            <!-- Coupon Image -->
+                            <div class="col-12" *ngIf="coupon.image">
+                              <div class="text-center mb-3">
+                                <img
+                                  [src]="imageurl + coupon.image"
+                                  class="img-fluid rounded shadow-sm"
+                                  style="max-height: 200px; object-fit: cover"
+                                  [alt]="coupon.title"
+                                />
+                              </div>
+                            </div>
+
+                            <!-- Coupon Details -->
+                            <div class="col-12">
+                              <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h5 class="mb-0 fw-bold text-dark">{{ coupon.title }}</h5>
+                                <span
+                                  class="badge"
+                                  [ngClass]="coupon.isActive ? 'bg-success' : 'bg-secondary'"
+                                >
+                                  {{ coupon.isActive ? 'Active' : 'Inactive' }}
+                                </span>
+                              </div>
+                              <div class="mb-2">
+                                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                                  <i class="bi bi-tag me-1"></i>{{ coupon.code }}
+                                </span>
+                              </div>
+                              <p class="text-muted small mb-3" *ngIf="coupon.description">
+                                {{ coupon.description }}
+                              </p>
+                            </div>
+
+                            <!-- Discount Info -->
+                            <div class="col-md-6">
+                              <div class="mb-2">
+                                <small class="text-muted d-block">Discount Type</small>
+                                <strong class="text-dark">
+                                  {{ coupon.discountType === 'percentage' ? 'Percentage' : 'Fixed Amount' }}
+                                </strong>
+                              </div>
+                            </div>
+                            <div class="col-md-6">
+                              <div class="mb-2">
+                                <small class="text-muted d-block">Discount Value</small>
+                                <strong class="text-success fs-5">
+                                  {{ coupon.discountType === 'percentage' ? coupon.discountValue + '%' : '₹' + coupon.discountValue }}
+                                </strong>
+                              </div>
+                            </div>
+
+                            <!-- Validity -->
+                            <div class="col-md-6" *ngIf="coupon.validFrom">
+                              <div class="mb-2">
+                                <small class="text-muted d-block">Valid From</small>
+                                <strong class="text-dark small">
+                                  {{ formatDate(coupon.validFrom) }}
+                                </strong>
+                              </div>
+                            </div>
+                            <div class="col-md-6" *ngIf="coupon.validUntil">
+                              <div class="mb-2">
+                                <small class="text-muted d-block">Valid Until</small>
+                                <strong class="text-dark small">
+                                  {{ formatDate(coupon.validUntil) }}
+                                </strong>
+                              </div>
+                            </div>
+
+                            <!-- Usage Info -->
+                            <div class="col-md-6" *ngIf="coupon.usageLimit !== undefined">
+                              <div class="mb-2">
+                                <small class="text-muted d-block">Usage Limit</small>
+                                <strong class="text-dark">
+                                  {{ coupon.usageLimit === 0 ? 'Unlimited' : coupon.usageLimit }}
+                                </strong>
+                              </div>
+                            </div>
+                            <div class="col-md-6" *ngIf="coupon.usedCount !== undefined">
+                              <div class="mb-2">
+                                <small class="text-muted d-block">Used Count</small>
+                                <strong class="text-dark">
+                                  {{ coupon.usedCount }} / {{ coupon.usageLimit === 0 ? '∞' : coupon.usageLimit }}
+                                </strong>
                               </div>
                             </div>
                           </div>

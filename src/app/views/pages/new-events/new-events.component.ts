@@ -9,7 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { NgxPaginationModule } from 'ngx-pagination';
 
-import { AuthService, EventService } from '../../../services/auth.service';
+import { AuthService, EventService, CouponService, Coupon } from '../../../services/auth.service';
 import { swalHelper } from '../../../core/constants/swal-helper';
 import { debounceTime, Subject } from 'rxjs';
 import { environment } from 'src/env/env.local';
@@ -42,6 +42,20 @@ interface Event {
   createdAt: string;
   updatedAt?: string;
   pricing: Pricing[];
+  coupons?: Array<{
+    _id: string;
+    code: string;
+    title: string;
+    description: string;
+    discountType: string;
+    discountValue: number;
+    image?: string;
+    validFrom?: string;
+    validUntil?: string;
+    usageLimit?: number;
+    usedCount?: number;
+    isActive?: boolean;
+  }>;
 }
 
 // Interface for Pricing
@@ -124,7 +138,7 @@ interface Schedule {
   imports: [CommonModule, FormsModule, NgSelectModule, NgxPaginationModule],
   providers: [],
   templateUrl: './new-events.component.html',
-  styleUrl: './new-events.component.scss',
+  styleUrls: ['./new-events.component.scss']
 })
 export class NewEventsComponent implements OnInit, AfterViewInit {
   eventForm: any = {
@@ -147,6 +161,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     b2bStayFee: 0,
     b2cTicketPrice: 0,
     b2cStayFee: 0,
+    couponId: '',
   };
 
   editEventForm: any = {
@@ -157,8 +172,13 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     b2bStayFee: 0,
     b2cTicketPrice: 0,
     b2cStayFee: 0,
+    couponId: '',
   };
   selectedEvent: Event | null = null;
+  
+  // Coupon properties
+  coupons: Coupon[] = [];
+  loadingCoupons: boolean = false;
 
   galleryModal: any;
   selectedEventForGallery: Event | null = null;
@@ -301,6 +321,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
   constructor(
     private eventService: EventService,
     private authService: AuthService,
+    private couponService: CouponService,
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer
   ) {
@@ -311,6 +332,33 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.fetchEvents();
+    this.fetchCoupons();
+  }
+  
+  async fetchCoupons(): Promise<void> {
+    this.loadingCoupons = true;
+    try {
+      const requestData = {
+        page: 1,
+        limit: 100 // Fetch more coupons for dropdown
+      };
+      
+      const response = await this.couponService.getCoupons(requestData);
+      
+      if (response && response.success && response.data?.coupons) {
+        // Filter only active and non-deleted coupons
+        this.coupons = response.data.coupons.filter((coupon: Coupon) => coupon.isActive && !coupon.isDeleted);
+      } else if (response && response.data?.coupons) {
+        this.coupons = response.data.coupons.filter((coupon: Coupon) => coupon.isActive && !coupon.isDeleted);
+      }
+      
+      this.cdr.detectChanges();
+    } catch (error) {
+      console.error('Error fetching coupons:', error);
+      swalHelper.showToast('Failed to fetch coupons', 'error');
+    } finally {
+      this.loadingCoupons = false;
+    }
   }
 
   ngAfterViewInit(): void {
@@ -458,11 +506,38 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       return false;
     }
     if (description.length < 10) {
-      errors.description = 'Event description must be at least 10 characters';
+      errors.description = 'Event description must be more than 10 characters';
       return false;
     }
     errors.description = '';
     return true;
+  }
+
+  onEventTypeChange(isEdit: boolean = false): void {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    
+    if (form.eventType === 'online') {
+      // Auto-fill location with "online"
+      form.location = 'online';
+      
+      // Prefix venue with "zoom" if it doesn't already start with it
+      if (!form.venue || !form.venue.toLowerCase().startsWith('zoom')) {
+        form.venue = form.venue ? `zoom ${form.venue}` : 'zoom';
+      }
+    } else {
+      // Clear location if changed from online to offline/hybrid
+      if (form.location === 'online') {
+        form.location = '';
+      }
+      // Remove zoom prefix if venue starts with zoom
+      if (form.venue && form.venue.toLowerCase().startsWith('zoom ')) {
+        form.venue = form.venue.substring(5); // Remove "zoom " prefix
+      } else if (form.venue && form.venue.toLowerCase() === 'zoom') {
+        form.venue = '';
+      }
+    }
+    
+    this.cdr.detectChanges();
   }
 
   validateDates(isEdit: boolean = false): boolean {
@@ -530,6 +605,49 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       return false;
     }
     errors.location = '';
+    return true;
+  }
+
+  validateMapUrl(isEdit: boolean = false): boolean {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const touched = isEdit ? this.editTouchedFields : this.touchedFields;
+    const errors = isEdit ? this.editValidationErrors : this.validationErrors;
+
+    if (!touched.mapUrl) return true;
+
+    const mapUrl = form.mapUrl?.trim();
+    
+    // If event is online, validate Zoom URL
+    if (form.eventType === 'online') {
+      if (!mapUrl) {
+        errors.mapUrl = 'Zoom URL is required for online events';
+        return false;
+      }
+      
+      // Validate URL format
+      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+      if (!urlPattern.test(mapUrl)) {
+        errors.mapUrl = 'Please enter a valid Zoom URL';
+        return false;
+      }
+      
+      // Optional: Check if it's a Zoom URL
+      if (!mapUrl.toLowerCase().includes('zoom')) {
+        errors.mapUrl = 'Please enter a valid Zoom meeting URL';
+        return false;
+      }
+    } else {
+      // For offline/hybrid events, URL is optional but if provided should be valid
+      if (mapUrl) {
+        const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+        if (!urlPattern.test(mapUrl)) {
+          errors.mapUrl = 'Please enter a valid URL';
+          return false;
+        }
+      }
+    }
+    
+    errors.mapUrl = '';
     return true;
   }
 
@@ -975,6 +1093,9 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
         case 'location':
           this.validateLocation(isEdit);
           break;
+        case 'mapUrl':
+          this.validateMapUrl(isEdit);
+          break;
         case 'capacity':
           this.validateCapacity(isEdit);
           break;
@@ -1287,6 +1408,15 @@ async createEvent(): Promise<void> {
     }));
     formData.append('schedules', JSON.stringify(processedSchedules));
 
+    // Handle coupons - send as array even if single select
+    const couponId = this.eventForm.couponId;
+    if (couponId && couponId.trim() !== '') {
+      formData.append('coupons', JSON.stringify([couponId]));
+    } else {
+      // If no coupon selected, send empty array
+      formData.append('coupons', JSON.stringify([]));
+    }
+
     // Debug FormData contents
     console.log('FormData contents:');
     formData.forEach((value, key) => {
@@ -1438,6 +1568,15 @@ async updateEvent(): Promise<void> {
     }));
     formData.append('schedules', JSON.stringify(processedSchedules));
 
+    // Handle coupons - send as array even if single select
+    const couponId = this.editEventForm.couponId;
+    if (couponId && couponId.trim() !== '') {
+      formData.append('coupons', JSON.stringify([couponId]));
+    } else {
+      // If no coupon selected, send empty array
+      formData.append('coupons', JSON.stringify([]));
+    }
+
     // Debug FormData contents
     console.log('FormData contents for update:');
     formData.forEach((value, key) => {
@@ -1579,6 +1718,10 @@ async updateEvent(): Promise<void> {
       isValid = false;
     }
 
+    if (!this.validateMapUrl()) {
+      isValid = false;
+    }
+
     if (!this.validateSponsors()) {
       isValid = false;
     }
@@ -1610,6 +1753,10 @@ async updateEvent(): Promise<void> {
 
     if (!this.validateLocation(true)) {
       this.editValidationErrors.location = 'Location is required';
+      isValid = false;
+    }
+
+    if (!this.validateMapUrl(true)) {
       isValid = false;
     }
 
@@ -1727,6 +1874,7 @@ async updateEvent(): Promise<void> {
       b2bStayFee: 0,
       b2cTicketPrice: 0,
       b2cStayFee: 0,
+      couponId: '',
     };
 
     this.validationErrors = {
@@ -1922,6 +2070,7 @@ async updateEvent(): Promise<void> {
         speakerId: schedule.speakerId || null,
         location: schedule.location || '',
       })),
+      couponId: event.coupons && event.coupons.length > 0 ? (typeof event.coupons[0] === 'string' ? event.coupons[0] : event.coupons[0]._id) : '', // Single select, take first one
     };
 
     if (event.pricing) {
@@ -2498,7 +2647,11 @@ async deleteGalleryItem(item: GalleryItem, type: 'image' | 'video'): Promise<voi
     this.resetUpiPaymentForm();
   }
 
-getFullRegistrationLink(event: any): string {
+  isCouponObject(coupon: any): boolean {
+    return coupon && typeof coupon === 'object' && coupon.title !== undefined;
+  }
+
+  getFullRegistrationLink(event: any): string {
   if (!event.registrationLink) return '';
   return `${environment.baseURL}/${event.registrationLink}`;
 }

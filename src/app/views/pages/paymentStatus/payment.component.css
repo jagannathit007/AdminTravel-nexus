@@ -214,6 +214,36 @@
   max-height: 50px;
 }
 
+/* Card download button styling */
+.btn-outline-success {
+  border-radius: 1.5rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-outline-success:hover {
+  background-color: #28a745;
+  color: #fff;
+  border-color: #28a745;
+}
+
+.btn-outline-success .bi {
+  font-size: 0.85rem;
+}
+
+/* Printable card styles (hidden by default) */
+#printable-event-card {
+  display: none;
+}
+
+@media print {
+  #printable-event-card {
+    display: block !important;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .container-fluid {

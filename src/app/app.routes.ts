@@ -59,6 +59,7 @@ import { NewUserRegistrationComponent } from './views/pages/new-user-registratio
 import { NewEventsComponent } from './views/pages/new-events/new-events.component';
 import {EventPaymentsComponent} from './views/pages/paymentStatus/payment.component';
 import { BannerRequestsComponent } from './views/pages/bannerRequest/bannerRequest.component';
+import { CouponMasterComponent } from './views/pages/couponMaster/coupon-master.component';
 
 
 export const routes: Routes = [
@@ -113,6 +114,7 @@ export const routes: Routes = [
         path: 'badgeManagement', component: BadgeManagementComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] },
       },
       {path:'bannerRequest', component: BannerRequestsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] }},
+      {path:'couponMaster', component: CouponMasterComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] }},
 
 
       { path: 'finance', component: FinanceComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },

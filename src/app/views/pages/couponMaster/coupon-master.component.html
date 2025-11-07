@@ -1,0 +1,513 @@
+<div class="container-fluid">
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+    <div class="card-header bg-gradient-primary d-flex justify-content-between align-items-center py-3">
+      <h4 class="mb-0 fw-bold text-white">
+        <i class="bi bi-ticket-perforated me-2"></i>Coupon Master
+      </h4>
+      <button class="btn btn-light rounded-pill px-4" (click)="openAddCouponModal()">
+        <i class="bi bi-plus-circle me-2"></i>Create Coupon
+      </button>
+    </div>
+    <div class="card-body p-0">
+      <div class="d-flex justify-content-between align-items-center p-3 border-bottom flex-wrap gap-2">
+        <div class="d-flex w-100 align-items-center flex-wrap gap-2">
+          <div class="flex-grow-1" style="min-width: 200px;">
+            <input type="text" class="form-control"
+                  placeholder="Search coupons..."
+                  [(ngModel)]="searchQuery"
+                  (input)="onSearch()">
+          </div>
+          <div style="min-width: 150px;">
+            <select class="form-select" [(ngModel)]="selectedStatusFilter" (change)="onStatusFilterChange()">
+              <option *ngFor="let option of statusFilterOptions" [value]="option.value">
+                {{option.label}}
+              </option>
+            </select>
+          </div>
+          <div style="min-width: 150px;">
+            <select class="form-select" [(ngModel)]="selectedDiscountTypeFilter" (change)="onDiscountTypeFilterChange()">
+              <option value="">All Discount Types</option>
+              <option *ngFor="let option of discountTypeOptions" [value]="option.value">
+                {{option.label}}
+              </option>
+            </select>
+          </div>
+          <div style="min-width: 120px;">
+            <ng-select [items]="[10,25,50,100]" (change)="onChange()" [(ngModel)]="payload.limit" placeholder="Items per page"></ng-select>
+          </div>
+        </div>
+      </div>
+    </div>
+     
+    <div *ngIf="loading" class="text-center my-5 py-5">
+      <div class="spinner-grow text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading && coupons?.coupons && coupons.coupons.length > 0">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th class="ps-4 py-3">Image</th>
+            <th class="py-3">Coupon Code</th>
+            <th class="py-3">Title</th>
+            <th class="py-3">Description</th>
+            <th class="py-3">Discount</th>
+            <th class="py-3">Validity</th>
+            <th class="py-3">Usage</th>
+            <th class="py-3">Status</th>
+            <th class="text-end pe-4 py-3">Action</th>
+          </tr>
+        </thead>
+        
+        <tbody>
+          <tr *ngFor="let coupon of coupons.coupons | paginate: { itemsPerPage: payload.limit, currentPage: payload.page, totalItems: coupons.total }; let i=index" class="border-bottom">
+            <td class="ps-4 py-3">
+              <div class="d-flex align-items-center">
+                <div class="coupon-image-container me-3 position-relative" style="cursor: pointer;" (click)="openViewDetailModal(coupon)">
+                  <img *ngIf="coupon.image" 
+                       [src]="getImageUrl(coupon.image)" 
+                       alt="Coupon Image"
+                       class="coupon-thumbnail rounded shadow-sm"
+                       style="width: 60px; height: 60px; object-fit: cover;">
+                  <div *ngIf="!coupon.image" 
+                       class="bg-gradient-primary rounded d-flex align-items-center justify-content-center shadow-sm"
+                       style="width: 60px; height: 60px; color: white;">
+                    <i class="bi bi-image"></i>
+                  </div>
+                  <div class="position-absolute top-0 end-0 bg-dark bg-opacity-75 rounded-circle p-1" 
+                       style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; margin: 2px;">
+                    <i class="bi bi-eye text-white" style="font-size: 10px;"></i>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="py-3">
+              <div class="fw-bold text-primary">{{coupon.code}}</div>
+            </td>
+            <td class="py-3">
+              <div class="fw-bold text-dark">{{coupon.title}}</div>
+            </td>
+            <td class="py-3">
+              <div class="text-muted small description-cell" style="max-width: 300px; word-wrap: break-word; overflow-wrap: break-word;">
+                <span *ngIf="!shouldShowMore(coupon.description || '')">{{coupon.description || 'No description'}}</span>
+                <span *ngIf="shouldShowMore(coupon.description || '')">
+                  {{truncateDescription(coupon.description || '')}}
+                  <a class="text-primary text-decoration-none ms-1" 
+                     style="cursor: pointer; white-space: nowrap;"
+                     (click)="openViewDetailModal(coupon)">
+                    more
+                  </a>
+                </span>
+              </div>
+            </td>
+            <td class="py-3">
+              <div class="fw-bold text-success">{{formatDiscount(coupon)}}</div>
+              <small class="text-muted d-block" *ngIf="coupon.minOrderAmount">
+                Min: ₹{{coupon.minOrderAmount}}
+              </small>
+              <small class="text-muted d-block" *ngIf="coupon.maxDiscountAmount">
+                Max: ₹{{coupon.maxDiscountAmount}}
+              </small>
+            </td>
+            <td class="py-3">
+              <div class="small">
+                <div class="text-muted mb-1" *ngIf="coupon.validFrom">
+                  <strong>From:</strong> {{formatDate(coupon.validFrom)}}
+                </div>
+                <div class="text-muted mb-1" *ngIf="coupon.validUntil">
+                  <strong>To:</strong> {{formatDate(coupon.validUntil)}}
+                </div>
+                <div *ngIf="!coupon.validFrom && !coupon.validUntil" class="text-muted">
+                  No expiry
+                </div>
+              </div>
+            </td>
+            <td class="py-3">
+              <div class="small">
+                <div class="text-muted mb-1">
+                  Used: {{coupon.usedCount || 0}} / {{coupon.usageLimit || '∞'}}
+                </div>
+                <!-- <div class="text-muted">
+                  Per User: {{coupon.perUserLimit || 1}}
+                </div> -->
+              </div>
+            </td>
+            <td class="py-3">
+              <span class="badge rounded-pill" 
+                    [ngClass]="getStatusBadgeClass(coupon)">
+                {{getStatusBadgeText(coupon)}}
+              </span>
+            </td>
+            <td class="text-end pe-4 py-3">
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-primary rounded-pill dropdown-toggle" type="button" 
+                  data-bs-toggle="dropdown" aria-expanded="false">
+                  Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                  <li><a class="dropdown-item" (click)="openViewDetailModal(coupon)" style="cursor: pointer;">
+                    <i class="bi bi-eye-fill me-2 text-info"></i> View Details
+                  </a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" (click)="openEditCouponModal(coupon)" style="cursor: pointer;">
+                    <i class="bi bi-pencil-fill me-2 text-primary"></i> Edit
+                  </a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item text-danger" (click)="deleteCoupon(coupon)" style="cursor: pointer;">
+                    <i class="bi bi-trash-fill me-2"></i> Delete
+                  </a></li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div class="d-flex justify-content-end p-3">
+        <pagination-controls (pageChange)="onPageChange($event)"></pagination-controls>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && (!coupons?.coupons || coupons.coupons.length === 0)" class="text-center my-5 py-4 px-4">
+      <div class="empty-state">
+        <i class="bi bi-ticket-perforated fs-1 text-muted mb-3"></i>
+        <h5>No Coupons Found</h5>
+        <p class="text-muted">Try adding some coupons or adjusting your search criteria.</p>
+        <button class="btn btn-primary rounded-pill mt-3" (click)="openAddCouponModal()">
+          <i class="bi bi-plus-circle me-2"></i>Create Coupon
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Detail Modal -->
+<div class="modal fade" id="viewDetailModal" tabindex="-1" role="dialog" aria-labelledby="viewDetailModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+    <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="viewDetailModalTitle">
+          <i class="bi bi-ticket-perforated me-2"></i>Coupon Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0" *ngIf="selectedCouponForView">
+        <div *ngIf="loadingDetail" class="text-center my-5 py-5">
+          <div class="spinner-grow text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+        
+        <div *ngIf="!loadingDetail" class="row g-0">
+          <div class="col-md-8" *ngIf="selectedCouponForView.image">
+            <div class="position-relative">
+              <img [src]="getImageUrl(selectedCouponForView.image)" 
+                   [alt]="selectedCouponForView.title"
+                   class="img-fluid w-100"
+                   style="max-height: 500px; object-fit: contain; background: #f8f9fa;">
+              <div class="position-absolute top-0 end-0 m-2">
+                <span class="badge rounded-pill" 
+                      [ngClass]="getStatusBadgeClass(selectedCouponForView)">
+                  {{getStatusBadgeText(selectedCouponForView)}}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div [class]="selectedCouponForView.image ? 'col-md-4 bg-light' : 'col-md-12 bg-light'">
+            <div class="p-4">
+              <h4 class="fw-bold text-dark mb-3">{{selectedCouponForView.title || 'Untitled'}}</h4>
+              
+              <div class="mb-3">
+                <h6 class="text-muted mb-2">Coupon Code</h6>
+                <p class="text-dark fw-bold">{{selectedCouponForView.code}}</p>
+              </div>
+              
+              <div class="mb-3" *ngIf="selectedCouponForView.description">
+                <h6 class="text-muted mb-2">Description</h6>
+                <p class="text-dark">{{selectedCouponForView.description}}</p>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-6">
+                  <h6 class="text-muted mb-2">Discount Type</h6>
+                  <p class="text-dark">{{selectedCouponForView.discountType === 'percentage' ? 'Percentage' : 'Fixed Amount'}}</p>
+                </div>
+                <div class="col-6">
+                  <h6 class="text-muted mb-2">Discount Value</h6>
+                  <p class="text-success fw-bold">{{formatDiscount(selectedCouponForView)}}</p>
+                </div>
+              </div>
+
+              <!-- <div class="row mb-3">
+                <div class="col-6">
+                  <h6 class="text-muted mb-2">Min Order Amount</h6>
+                  <p class="text-dark">₹{{selectedCouponForView.minOrderAmount || 0}}</p>
+                </div>
+                <div class="col-6" *ngIf="selectedCouponForView.maxDiscountAmount">
+                  <h6 class="text-muted mb-2">Max Discount Amount</h6>
+                  <p class="text-dark">₹{{selectedCouponForView.maxDiscountAmount}}</p>
+                </div>
+              </div> -->
+
+              <div class="row mb-3">
+                <div class="col-6">
+                  <h6 class="text-muted mb-2">Valid From</h6>
+                  <p class="text-dark">{{formatDate(selectedCouponForView.validFrom)}}</p>
+                </div>
+                <div class="col-6">
+                  <h6 class="text-muted mb-2">Valid Until</h6>
+                  <p class="text-dark">{{formatDate(selectedCouponForView.validUntil)}}</p>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-6">
+                  <h6 class="text-muted mb-2">Usage Limit</h6>
+                  <p class="text-dark">{{selectedCouponForView.usageLimit || 'Unlimited'}}</p>
+                </div>
+                <div class="col-6">
+                  <h6 class="text-muted mb-2">Used Count</h6>
+                  <p class="text-dark">{{selectedCouponForView.usedCount || 0}} / {{selectedCouponForView.usageLimit || '∞'}}</p>
+                </div>
+              </div>
+
+              <!-- <div class="mb-3">
+                 <h6 class="text-muted mb-2">Per User Limit</h6> -->
+                <!-- <p class="text-dark">{{selectedCouponForView.perUserLimit || 1}}</p>
+              </div> --> 
+
+              <!-- <div class="mb-3" *ngIf="selectedCouponForView.applicableEventTypes && selectedCouponForView.applicableEventTypes.length > 0">
+                <h6 class="text-muted mb-2">Applicable Event Types</h6>
+                <div class="d-flex gap-2 flex-wrap">
+                  <span class="badge bg-info" *ngFor="let type of selectedCouponForView.applicableEventTypes">
+                    {{type === 'online' ? 'Online' : 'Offline'}}
+                  </span>
+                </div>
+              </div> -->
+
+              <div class="row mb-3">
+                <div class="col-12">
+                  <h6 class="text-muted mb-2">Created At</h6>
+                  <p class="text-dark">{{formatDate(selectedCouponForView.createdAt)}}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-primary rounded-pill me-2" 
+                *ngIf="selectedCouponForView"
+                (click)="openEditCouponModal(selectedCouponForView)" 
+                data-bs-dismiss="modal">
+          <i class="bi bi-pencil-fill me-1"></i>Edit Coupon
+        </button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Coupon Modal (Add/Edit) -->
+<div class="modal fade" id="couponModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" role="dialog"
+  aria-labelledby="couponModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+    <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="couponModalTitle">
+          <i class="bi bi-ticket-perforated me-2"></i> {{editMode ? 'Edit Coupon' : 'Create New Coupon'}}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form #couponForm="ngForm">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="couponCode" class="form-label">Coupon Code <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="couponCode" placeholder="e.g., WELCOME20" 
+                    [(ngModel)]="newCoupon.code" name="couponCode" required maxlength="35"
+                    (input)="onCodeChange()"
+                    (blur)="validateCode()"
+                    #codeInput="ngModel"
+                    [class.is-invalid]="(validationErrors.code || (codeInput.invalid && (codeInput.dirty || codeInput.touched || formSubmitted)))"
+                    [disabled]="editMode">
+              <div class="invalid-feedback" *ngIf="validationErrors.code">
+                {{validationErrors.code}}
+              </div>
+              <div class="invalid-feedback" *ngIf="!validationErrors.code && codeInput.invalid && (codeInput.dirty || codeInput.touched || formSubmitted)">
+                Coupon code is required.
+              </div>
+              <small class="form-text text-muted">Code will be converted to uppercase (Max: 35 characters)</small>
+              <small class="form-text text-danger d-block" *ngIf="newCoupon.code && newCoupon.code.length > 35">
+                Maximum 35 characters allowed. Current: {{newCoupon.code.length}}
+              </small>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="couponTitle" class="form-label">Title <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="couponTitle" placeholder="e.g., Welcome Discount" 
+                    [(ngModel)]="newCoupon.title" name="couponTitle" required maxlength="80"
+                    (input)="onTitleChange()"
+                    (blur)="validateTitle()"
+                    #titleInput="ngModel"
+                    [class.is-invalid]="(validationErrors.title || (titleInput.invalid && (titleInput.dirty || titleInput.touched || formSubmitted)))">
+              <div class="invalid-feedback" *ngIf="validationErrors.title">
+                {{validationErrors.title}}
+              </div>
+              <div class="invalid-feedback" *ngIf="!validationErrors.title && titleInput.invalid && (titleInput.dirty || titleInput.touched || formSubmitted)">
+                Title is required.
+              </div>
+              <small class="form-text text-muted">Max: 80 characters</small>
+              <small class="form-text text-danger d-block" *ngIf="newCoupon.title && newCoupon.title.length > 80">
+                Maximum 80 characters allowed. Current: {{newCoupon.title.length}}
+              </small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="couponDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="couponDescription" rows="2" placeholder="Enter coupon description" 
+                     [(ngModel)]="newCoupon.description" name="couponDescription"></textarea>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="discountType" class="form-label">Discount Type <span class="text-danger">*</span></label>
+              <select class="form-select" id="discountType" [(ngModel)]="newCoupon.discountType" name="discountType" required>
+                <option *ngFor="let option of discountTypeOptions" [value]="option.value">
+                  {{option.label}}
+                </option>
+              </select>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="discountValue" class="form-label">Discount Value <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" id="discountValue" 
+                    [placeholder]="newCoupon.discountType === 'percentage' ? 'e.g., 20' : 'e.g., 500'"
+                    [(ngModel)]="newCoupon.discountValue" name="discountValue" required min="0"
+                    [max]="newCoupon.discountType === 'percentage' ? 100 : null"
+                    #discountInput="ngModel"
+                    [class.is-invalid]="discountInput.invalid && (discountInput.dirty || discountInput.touched || formSubmitted)">
+              <div class="invalid-feedback" *ngIf="discountInput.invalid && (discountInput.dirty || discountInput.touched || formSubmitted)">
+                Please enter a valid discount value.
+              </div>
+              <small class="form-text text-muted" *ngIf="newCoupon.discountType === 'percentage'">
+                Maximum 100%
+              </small>
+            </div>
+          </div>
+
+          <!-- <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="minOrderAmount" class="form-label">Minimum Order Amount</label>
+              <input type="number" class="form-control" id="minOrderAmount" placeholder="e.g., 100" 
+                    [(ngModel)]="newCoupon.minOrderAmount" name="minOrderAmount" min="0">
+              <small class="form-text text-muted">Minimum order amount to apply coupon</small>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="maxDiscountAmount" class="form-label">Maximum Discount Amount</label>
+              <input type="number" class="form-control" id="maxDiscountAmount" placeholder="e.g., 500 (optional)" 
+                    [(ngModel)]="newCoupon.maxDiscountAmount" name="maxDiscountAmount" min="0">
+              <small class="form-text text-muted">Maximum discount cap (optional)</small>
+            </div>
+          </div> -->
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="validFrom" class="form-label">Valid From <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" id="validFrom"
+                    [(ngModel)]="newCoupon.validFrom" name="validFrom" required
+                    #validFromInput="ngModel"
+                    [class.is-invalid]="validFromInput.invalid && (validFromInput.dirty || validFromInput.touched || formSubmitted)">
+              <div class="invalid-feedback" *ngIf="validFromInput.invalid && (validFromInput.dirty || validFromInput.touched || formSubmitted)">
+                Valid From date is required.
+              </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="validUntil" class="form-label">Valid Until <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" id="validUntil"
+                    [(ngModel)]="newCoupon.validUntil" name="validUntil" required
+                    #validUntilInput="ngModel"
+                    [class.is-invalid]="validUntilInput.invalid && (validUntilInput.dirty || validUntilInput.touched || formSubmitted)">
+              <div class="invalid-feedback" *ngIf="validUntilInput.invalid && (validUntilInput.dirty || validUntilInput.touched || formSubmitted)">
+                Valid Until date is required.
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="usageLimit" class="form-label">Usage Limit</label>
+              <input type="number" class="form-control" id="usageLimit" placeholder="e.g., 100" 
+                    [(ngModel)]="newCoupon.usageLimit" name="usageLimit" min="0">
+              <small class="form-text text-muted">Total number of times coupon can be used (0 = unlimited)</small>
+            </div>
+<!--             
+            <div class="col-md-6 mb-3">
+              <label for="perUserLimit" class="form-label">Per User Limit</label>
+              <input type="number" class="form-control" id="perUserLimit" placeholder="e.g., 1" 
+                    [(ngModel)]="newCoupon.perUserLimit" name="perUserLimit" min="1">
+              <small class="form-text text-muted">Number of times a single user can use this coupon</small>
+            </div> -->
+          </div> 
+
+          <!-- <div class="mb-3">
+            <label class="form-label">Applicable Event Types</label>
+            <div class="d-flex gap-3">
+              <div class="form-check" *ngFor="let option of eventTypeOptions">
+                <input class="form-check-input" type="checkbox" 
+                      [id]="'eventType' + option.value"
+                      [checked]="newCoupon.applicableEventTypes.includes(option.value)"
+                      (change)="toggleEventType(option.value)">
+                <label class="form-check-label" [for]="'eventType' + option.value">
+                  {{option.label}}
+                </label>
+              </div>
+            </div>
+            <small class="form-text text-muted">Select event types where this coupon can be applied</small>
+          </div> -->
+
+          <div class="mb-3">
+            <label for="couponImage" class="form-label">Coupon Image</label>
+            <input type="file" class="form-control" id="couponImage" accept="image/*"
+                   (change)="onImageSelect($event)" name="couponImage">
+            <small class="form-text text-muted">Supported formats: JPG, PNG, GIF (Max: 10MB)</small>
+          </div>
+
+          <!-- Image Preview -->
+          <div *ngIf="imagePreview" class="mb-3">
+            <label class="form-label">Image Preview:</label>
+            <div class="border rounded p-2">
+              <img [src]="imagePreview" alt="Preview" class="img-thumbnail" style="max-height: 200px;">
+            </div>
+          </div>
+          
+          <!-- <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="couponStatus" 
+                  [(ngModel)]="newCoupon.isActive" name="couponStatus">
+            <label class="form-check-label" for="couponStatus">
+              {{newCoupon.isActive ? 'Active' : 'Inactive'}}
+            </label>
+          </div> -->
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i> Cancel
+        </button>
+        <button type="button" class="btn btn-primary rounded-pill" (click)="saveCoupon(couponForm)" 
+                [disabled]="loading">
+          <i class="bi bi-save me-1"></i> {{editMode ? 'Update' : 'Create'}}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
