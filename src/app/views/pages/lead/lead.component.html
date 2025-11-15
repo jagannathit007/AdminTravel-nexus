@@ -56,7 +56,7 @@
             <th class="py-3">Region</th>
             <th class="py-3">Budget</th>
             <th class="py-3">Package Details</th>
-            <th class="py-3">Status</th>
+            <!-- <th class="py-3">Status</th> -->
             <th class="py-3">Assignments</th>
             <th class="py-3">Created At</th>
             <th class="text-end pe-4 py-3">Action</th>
@@ -98,18 +98,18 @@
                 {{lead.packageDetails || 'No details'}}
               </div>
             </td>
-            <td class="py-3">
+            <!-- <td class="py-3">
               <span class="badge rounded-pill" [ngClass]="getStatusClass(lead.status)">
                 {{getStatusLabel(lead.status)}}
               </span>
-            </td>
+            </td> -->
             <td class="py-3">
               <span class="badge bg-info rounded-pill">
                 {{lead.assignedTo?.length || 0}} {{(lead.assignedTo?.length || 0) === 1 ? 'DMC' : 'DMCs'}}
               </span>
-              <div class="small text-muted mt-1" *ngIf="lead.assignedTo && lead.assignedTo.length > 0">
+              <!-- <div class="small text-muted mt-1" *ngIf="lead.assignedTo && lead.assignedTo.length > 0">
                 Accepted: {{getAcceptedCount(lead.assignedTo)}}
-              </div>
+              </div> -->
             </td>
             <td class="py-3">
               <div class="small">{{formatDate(lead.createdAt)}}</div>
@@ -312,9 +312,9 @@
                     <tr>
                       <th>DMC</th>
                       <th>Contact</th>
-                      <th>Status</th>
+                      <!-- <th>Status</th> -->
                       <th>Assigned At</th>
-                      <th>Accepted At</th>
+                      <!-- <th>Accepted At</th> -->
                       <th>Notes</th>
                     </tr>
                   </thead>
@@ -349,18 +349,18 @@
                           <i class="bi bi-telephone me-1"></i>{{assignment.userId.mobile_number}}
                         </small>
                       </td>
-                      <td>
+                      <!-- <td>
                         <span class="badge rounded-pill" [ngClass]="getAssignmentStatusClass(assignment.status)">
                           {{getStatusLabel(assignment.status)}}
                         </span>
-                      </td>
+                      </td> -->
                       <td>
                         <small class="text-muted">{{formatDateTime(assignment.assignedAt)}}</small>
                       </td>
-                      <td>
+                      <!-- <td>
                         <small class="text-muted" *ngIf="assignment.acceptedAt">{{formatDateTime(assignment.acceptedAt)}}</small>
                         <small class="text-muted" *ngIf="!assignment.acceptedAt">-</small>
-                      </td>
+                      </td> -->
                       <td>
                         <small class="text-muted" *ngIf="assignment.notes">{{assignment.notes}}</small>
                         <small class="text-muted" *ngIf="!assignment.notes">-</small>
