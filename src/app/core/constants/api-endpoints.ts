@@ -237,7 +237,15 @@ public DELETE_REGION= `${this.PATH}/deleteRegion`
    
 
   public UPDATE_BANNER_REQUEST_STATUS = `${this.PATH1}/mobile/updateBannerRequestStatus`;
-  public GET_BANNER_REQUESTS= `${this.PATH1}mobile/getBannerRequests`;
+  public GET_BANNER_REQUESTS= `${this.PATH1}/mobile/getBannerRequests`;
+  
+  // Travel Ask Management
+  public GET_ALL_ASKS = `${this.PATH1}/mobile/getAllAsks`;
+  public GET_ASK_DETAIL = `${this.PATH1}/mobile/getAskDetail`;
+  
+  // Travel Lead Management
+  public GET_ALL_LEADS = `${this.PATH1}/mobile/getAllLeads`;
+  public GET_LEAD_DETAIL = `${this.PATH1}/mobile/getLeadDetail`;
 
   // Coupon Management
   public CREATE_COUPON = `${this.PATH1}/admin/createCoupon`;

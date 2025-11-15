@@ -1,135 +1,502 @@
 <div class="container-fluid">
-    <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-      <div class="card-header bg-gradient-primary d-flex justify-content-between align-items-center py-3">
-        <h4 class="mb-0 fw-bold text-white">
-          <i class="bi bi-question-circle me-2"></i>Ask Management
-        </h4>
-        <div class="export-buttons">
-          <button class="btn btn-sm btn-light me-2" [disabled]="loading || exporting || !asks.docs || asks.docs.length === 0" (click)="exportToExcel()">
-            <i class="bi bi-file-excel me-1"></i>Export Excel
-          </button>
-          <button class="btn btn-sm btn-light" [disabled]="loading || exporting || !asks.docs || asks.docs.length === 0" (click)="exportToPDF()">
-            <i class="bi bi-file-pdf me-1"></i>Export PDF
-          </button>
-        </div>
-      </div>
-      <div class="card-body p-0">
-        <div class="d-flex flex-wrap justify-content-between align-items-center p-3 border-bottom">
-          <div class="d-flex flex-wrap align-items-center gap-2 mb-2 mb-md-0">
-            <div class="me-2" style="min-width: 200px;">
-              <label for="chapterSelect" class="form-label mb-1">Chapter</label>
-              <ng-select 
-                id="chapterSelect"
-                [items]="chapters"
-                bindLabel="name"
-                bindValue="name"
-                placeholder="--Select--"
-                [(ngModel)]="filters.chapter_name"
-                (change)="onChapterChange()">
-              </ng-select>
-            </div>
-            <div class="flex-grow-1 me-2">
-              <label for="searchInput" class="form-label mb-1">Search Product</label>
-              <input type="text" id="searchInput" class="form-control" placeholder="Search by product..." 
-                     [(ngModel)]="filters.search" (input)="onSearch()">
-            </div>
-            <div class="mt-4">
-              <button class="btn btn-outline-secondary" (click)="resetFilters()">
-                <i class="bi bi-x-circle me-1"></i>Reset
-              </button>
-            </div>
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+    <div class="card-header bg-gradient-primary d-flex justify-content-between align-items-center py-3">
+      <h4 class="mb-0 fw-bold text-white">
+        <i class="bi bi-question-circle me-2"></i>Travel Ask Management
+      </h4>
+    </div>
+    <div class="card-body p-0">
+      <div class="p-3 border-bottom">
+        <!-- Search and Filters -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label small text-muted">Search</label>
+            <input type="text" 
+                   class="form-control" 
+                   placeholder="Search by title, description, user..."
+                   [(ngModel)]="searchQuery"
+                   (input)="onSearch()">
           </div>
-          <div class="d-flex align-items-center">
-            <div class="ms-2">
-              <ng-select 
-                id="limitSelect"
-                [items]="[10, 25, 50, 100]" 
-                [(ngModel)]="filters.limit" 
-                (change)="onLimitChange()" 
-                placeholder="Items per page">
-              </ng-select>
-            </div>
+          <div class="col-md-2">
+            <label class="form-label small text-muted">Region</label>
+            <ng-select [items]="regions" 
+                      bindLabel="name" 
+                      bindValue="_id"
+                      placeholder="All Regions"
+                      [(ngModel)]="payload.region"
+                      (change)="onFilterChange()"
+                      [clearable]="true">
+            </ng-select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small text-muted">Status</label>
+            <ng-select [items]="statusOptions" 
+                      bindLabel="label" 
+                      bindValue="value"
+                      placeholder="All Status"
+                      [(ngModel)]="payload.status"
+                      (change)="onFilterChange()">
+            </ng-select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small text-muted">Visibility</label>
+            <ng-select [items]="publicVisibilityOptions" 
+                      bindLabel="label" 
+                      bindValue="value"
+                      placeholder="All"
+                      [(ngModel)]="payload.isPublic"
+                      (change)="onFilterChange()">
+            </ng-select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small text-muted">Items per page</label>
+            <ng-select [items]="[10, 25, 50, 100]" 
+                      [(ngModel)]="payload.limit" 
+                      (change)="onLimitChange()" 
+                      placeholder="Items per page">
+            </ng-select>
           </div>
         </div>
-      </div>
-  
-      <div *ngIf="loading" class="text-center my-5 py-5">
-        <div class="spinner-grow text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
-  
-      <div *ngIf="exporting" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background: rgba(0,0,0,0.3); z-index: 1050;">
-        <div class="bg-white p-4 rounded shadow-lg text-center">
-          <div class="spinner-border text-primary mb-3" role="status">
-            <span class="visually-hidden">Exporting...</span>
+
+        <!-- Advanced Filters -->
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label small text-muted">Date From</label>
+            <input type="date" 
+                   class="form-control" 
+                   [(ngModel)]="payload.dateFrom"
+                   (change)="onFilterChange()">
           </div>
-          <p class="mb-0">Preparing export file...</p>
-        </div>
-      </div>
-  
-      <div class="table-responsive" *ngIf="!loading && asks?.docs && asks.docs.length > 0">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="bg-light">
-            <tr>
-              <th class="ps-4 py-3">Sr No</th>
-              <th class="py-3">Creator</th>
-              <th class="py-3">Chapter</th>
-              <th class="py-3">Business Category</th>
-              <th class="py-3">Subcategory</th>
-              <th class="py-3">Product</th>
-              <th class="py-3">Description</th>
-              <th class="py-3">Status</th>
-              <th class="py-3">Created At</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let ask of asks.docs | paginate: { id: 'ask-pagination', itemsPerPage: filters.limit, currentPage: filters.page, totalItems: asks.totalDocs }; let i = index" 
-                class="border-bottom">
-              <td class="ps-4 py-3">{{ (filters.page - 1) * filters.limit + i + 1 }}</td>
-              <td class="py-3">{{ask.user.name}}</td>
-              <td class="py-3">{{ask.user.chapter_name}}</td>
-              <td class="py-3">{{ask.businessCategory}}</td>
-              <td class="py-3">{{ask.businessSubCategory}}</td>
-              <td class="py-3">{{ask.product}}</td>
-              <td class="py-3">{{ask.description}}</td>
-              <td class="py-3">
-                <span class="badge rounded-pill" 
-                      [ngClass]="ask.status === 'completed' ? 'bg-success' : 'bg-warning'">
-                  {{ask.status | titlecase}}
-                </span>
-              </td>
-              <td class="py-3">{{formatDate(ask.createdAt)}}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="d-flex justify-content-between align-items-center p-3 border-top">
-          <div *ngIf="asks.docs && asks.docs.length > 0" class="text-muted">
-            Showing {{ (filters.page - 1) * filters.limit + 1 }} to 
-            {{ Math.min(filters.page * filters.limit, asks.totalDocs) }} 
-            of {{ asks.totalDocs }} entries
+          <div class="col-md-3">
+            <label class="form-label small text-muted">Date To</label>
+            <input type="date" 
+                   class="form-control" 
+                   [(ngModel)]="payload.dateTo"
+                   (change)="onFilterChange()">
           </div>
-          <pagination-controls 
-            id="ask-pagination"
-            [maxSize]="5"
-            [responsive]="true"
-            (pageChange)="onPageChange($event)"
-            previousLabel="Previous"
-            nextLabel="Next"
-            [directionLinks]="true">
-          </pagination-controls>
+          <div class="col-md-3">
+            <label class="form-label small text-muted">Min Budget (₹)</label>
+            <input type="number" 
+                   class="form-control" 
+                   placeholder="Min Budget"
+                   [(ngModel)]="payload.minBudget"
+                   (change)="onFilterChange()">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small text-muted">Max Budget (₹)</label>
+            <input type="number" 
+                   class="form-control" 
+                   placeholder="Max Budget"
+                   [(ngModel)]="payload.maxBudget"
+                   (change)="onFilterChange()">
+          </div>
         </div>
-      </div>
-  
-      <div *ngIf="!loading && (!asks?.docs || asks.docs.length === 0)" class="text-center my-5 py-4 px-4">
-        <div class="empty-state">
-          <i class="bi bi-question-circle fs-1 text-muted mb-3"></i>
-          <h5>No Asks Found</h5>
-          <p class="text-muted">Try adjusting your search criteria or chapter filter.</p>
-          <button class="btn btn-outline-primary rounded-pill mt-3" (click)="resetFilters()">
-            <i class="bi bi-arrow-repeat me-2"></i>Reset Filters
+
+        <div class="mt-3">
+          <button class="btn btn-outline-secondary btn-sm" (click)="resetFilters()">
+            <i class="bi bi-x-circle me-1"></i>Reset Filters
           </button>
         </div>
       </div>
     </div>
+     
+    <div *ngIf="loading" class="text-center my-5 py-5">
+      <div class="spinner-grow text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading && asks?.docs && asks.docs.length > 0">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th class="ps-4 py-3">Title</th>
+            <th class="py-3">User</th>
+            <th class="py-3">Region</th>
+            <th class="py-3">Budget</th>
+            <th class="py-3">Travel Dates</th>
+            <th class="py-3">Pax</th>
+            <th class="py-3">Status</th>
+            <th class="py-3">Visibility</th>
+            <th class="py-3">Leads</th>
+            <th class="py-3">Created At</th>
+            <th class="text-end pe-4 py-3">Action</th>
+          </tr>
+        </thead>
+        
+        <tbody>
+          <tr *ngFor="let ask of asks.docs | paginate: { itemsPerPage: payload.limit, currentPage: payload.page, totalItems: asks.totalDocs }; let i=index" class="border-bottom">
+            <td class="ps-4 py-3">
+              <div class="fw-bold text-dark">{{ask.title || 'Untitled'}}</div>
+              <small class="text-muted d-block" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ask.description || 'No description'}}
+              </small>
+            </td>
+            <td class="py-3">
+              <div class="fw-bold text-dark">{{getUserDisplayName(ask.userId)}}</div>
+              <small class="text-muted" *ngIf="ask.userId?.email">{{ask.userId.email}}</small>
+              <div class="text-muted small" *ngIf="ask.userId?.mobile_number">
+                <i class="bi bi-telephone me-1"></i>{{ask.userId.mobile_number}}
+              </div>
+            </td>
+            <td class="py-3">
+              <span class="badge bg-info">{{ask.region?.name || 'N/A'}}</span>
+              <div class="text-muted small mt-1" *ngIf="ask.region?.code">{{ask.region.code}}</div>
+            </td>
+            <td class="py-3">
+              <div class="fw-bold text-success">
+                {{formatCurrency(ask.budget?.min)}} - {{formatCurrency(ask.budget?.max)}}
+              </div>
+            </td>
+            <td class="py-3">
+              <div class="small">
+                <div class="text-muted mb-1">
+                  <strong>From:</strong> {{formatDate(ask.travelDates?.start)}}
+                </div>
+                <div class="text-muted">
+                  <strong>To:</strong> {{formatDate(ask.travelDates?.end)}}
+                </div>
+                <div class="text-info mt-1">
+                  <i class="bi bi-calendar-check me-1"></i>
+                  {{calculateDuration(ask.travelDates?.start, ask.travelDates?.end)}} days
+                </div>
+              </div>
+            </td>
+            <td class="py-3">
+              <div class="small">
+                <div>Adults: {{ask.paxCount?.adults || 0}}</div>
+                <div>Children: {{ask.paxCount?.children || 0}}</div>
+                <div>Infants: {{ask.paxCount?.infants || 0}}</div>
+                <div class="fw-bold mt-1">Total: {{getTotalPax(ask.paxCount)}}</div>
+              </div>
+            </td>
+            <td class="py-3">
+              <span class="badge rounded-pill" [ngClass]="getStatusClass(ask.status)">
+                {{getStatusLabel(ask.status)}}
+              </span>
+            </td>
+            <td class="py-3">
+              <span class="badge rounded-pill" [ngClass]="ask.isPublic ? 'bg-primary' : 'bg-secondary'">
+                {{ask.isPublic ? 'Public' : 'Regional'}}
+              </span>
+            </td>
+            <td class="py-3">
+              <span class="badge bg-info rounded-pill">
+                {{ask.leads?.length || 0}} {{(ask.leads?.length || 0) === 1 ? 'Lead' : 'Leads'}}
+              </span>
+            </td>
+            <td class="py-3">
+              <div class="small">{{formatDate(ask.createdAt)}}</div>
+            </td>
+            <td class="text-end pe-4 py-3">
+              <button class="btn btn-sm btn-outline-primary rounded-pill" 
+                      (click)="openAskDetail(ask)"
+                      [disabled]="detailLoading">
+                <i class="bi bi-eye me-1"></i>View
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div class="d-flex justify-content-between align-items-center p-3">
+        <div class="text-muted small">
+          Showing {{ (payload.page - 1) * payload.limit + 1 }} to 
+          {{ Math.min(payload.page * payload.limit, asks.totalDocs) }} 
+          of {{ asks.totalDocs }} entries
+        </div>
+        <pagination-controls (pageChange)="onPageChange($event)"></pagination-controls>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && (!asks?.docs || asks.docs.length === 0)" class="text-center my-5 py-4 px-4">
+      <div class="empty-state">
+        <i class="bi bi-question-circle fs-1 text-muted mb-3"></i>
+        <h5>No Travel Asks Found</h5>
+        <p class="text-muted">Try adjusting your search criteria or filters.</p>
+        <button class="btn btn-outline-primary rounded-pill mt-3" (click)="resetFilters()">
+          <i class="bi bi-arrow-repeat me-2"></i>Reset Filters
+        </button>
+      </div>
+    </div>
   </div>
+</div>
+
+<!-- Ask Detail Modal -->
+<div class="modal fade" id="askDetailModal" tabindex="-1" role="dialog" aria-labelledby="askDetailModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+    <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="askDetailModalTitle">
+          <i class="bi bi-question-circle me-2"></i>Ask Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" *ngIf="selectedAsk">
+        <div *ngIf="detailLoading" class="text-center py-5">
+          <div class="spinner-grow text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+
+        <div *ngIf="!detailLoading">
+          <div class="row mb-4">
+            <div class="col-md-8">
+              <h4 class="fw-bold text-dark mb-2">{{selectedAsk.title || 'Untitled'}}</h4>
+              <p class="text-muted mb-3" *ngIf="selectedAsk.description">{{selectedAsk.description}}</p>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge rounded-pill" [ngClass]="getStatusClass(selectedAsk.status)">
+                  {{getStatusLabel(selectedAsk.status)}}
+                </span>
+                <span class="badge rounded-pill" [ngClass]="selectedAsk.isPublic ? 'bg-primary' : 'bg-secondary'">
+                  {{selectedAsk.isPublic ? 'Public' : 'Regional'}}
+                </span>
+                <span class="badge bg-info">{{selectedAsk.region?.name || 'N/A'}}</span>
+              </div>
+            </div>
+            <div class="col-md-4 text-end">
+              <small class="text-muted">Created: {{formatDateTime(selectedAsk.createdAt)}}</small>
+            </div>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                  <h6 class="card-title text-primary mb-3">
+                    <i class="bi bi-person me-2"></i>User Information
+                  </h6>
+                  <div class="d-flex align-items-center mb-3" *ngIf="selectedAsk.userId">
+                    <div *ngIf="selectedAsk.userId.profilePic" class="me-3">
+                      <img [src]="getImageUrl(selectedAsk.userId.profilePic)" 
+                           alt="Profile"
+                           class="rounded-circle"
+                           style="width: 50px; height: 50px; object-fit: cover;"
+                           (error)="onImageError($event)">
+                    </div>
+                    <div *ngIf="!selectedAsk.userId.profilePic" class="me-3">
+                      <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
+                           style="width: 50px; height: 50px;">
+                        <i class="bi bi-person"></i>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="fw-bold">{{getUserDisplayName(selectedAsk.userId)}}</div>
+                      <div class="text-muted small" *ngIf="selectedAsk.userId.email">{{selectedAsk.userId.email}}</div>
+                      <div class="text-muted small" *ngIf="selectedAsk.userId.mobile_number">
+                        <i class="bi bi-telephone me-1"></i>{{selectedAsk.userId.mobile_number}}
+                      </div>
+                      <div class="text-muted small" *ngIf="selectedAsk.userId.business_name">
+                        <i class="bi bi-building me-1"></i>{{selectedAsk.userId.business_name}}
+                      </div>
+                      <div class="text-muted small" *ngIf="selectedAsk.userId.city || selectedAsk.userId.state">
+                        <i class="bi bi-geo-alt me-1"></i>{{selectedAsk.userId.city}}{{selectedAsk.userId.city && selectedAsk.userId.state ? ', ' : ''}}{{selectedAsk.userId.state}}
+                      </div>
+                    </div>
+                  </div>
+                  <div *ngIf="selectedAsk.userId?.regions && selectedAsk.userId.regions.length > 0" class="mt-2">
+                    <strong class="small">Regions:</strong>
+                    <div class="mt-1">
+                      <span class="badge bg-secondary me-1" *ngFor="let region of selectedAsk.userId.regions">
+                        {{region.name}}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                  <h6 class="card-title text-primary mb-3">
+                    <i class="bi bi-map me-2"></i>Region & Travel Details
+                  </h6>
+                  <div class="mb-2">
+                    <strong>Region:</strong> {{selectedAsk.region?.name || 'N/A'}}
+                    <span class="badge bg-info ms-2" *ngIf="selectedAsk.region?.code">{{selectedAsk.region.code}}</span>
+                  </div>
+                  <div class="mb-2" *ngIf="hasCountries(selectedAsk)">
+                    <strong>Countries:</strong>
+                    <div class="mt-1">
+                      <span class="badge bg-secondary me-1" *ngFor="let country of getCountries(selectedAsk)">
+                        {{country}}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="mb-2" *ngIf="selectedAsk.region?.description">
+                    <strong>Description:</strong>
+                    <p class="small text-muted mb-0">{{selectedAsk.region.description}}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                  <h6 class="card-title text-primary mb-3">
+                    <i class="bi bi-calendar me-2"></i>Travel Dates
+                  </h6>
+                  <div class="row">
+                    <div class="col-6">
+                      <strong>Start Date:</strong>
+                      <div class="text-muted">{{formatDate(selectedAsk.travelDates?.start)}}</div>
+                    </div>
+                    <div class="col-6">
+                      <strong>End Date:</strong>
+                      <div class="text-muted">{{formatDate(selectedAsk.travelDates?.end)}}</div>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <span class="badge bg-info">
+                      <i class="bi bi-calendar-check me-1"></i>
+                      Duration: {{calculateDuration(selectedAsk.travelDates?.start, selectedAsk.travelDates?.end)}} days
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                  <h6 class="card-title text-primary mb-3">
+                    <i class="bi bi-people me-2"></i>Passenger Count
+                  </h6>
+                  <div class="row">
+                    <div class="col-4">
+                      <strong>Adults:</strong>
+                      <div class="fw-bold text-primary">{{selectedAsk.paxCount?.adults || 0}}</div>
+                    </div>
+                    <div class="col-4">
+                      <strong>Children:</strong>
+                      <div class="fw-bold text-info">{{selectedAsk.paxCount?.children || 0}}</div>
+                    </div>
+                    <div class="col-4">
+                      <strong>Infants:</strong>
+                      <div class="fw-bold text-secondary">{{selectedAsk.paxCount?.infants || 0}}</div>
+                    </div>
+                  </div>
+                  <div class="mt-2 pt-2 border-top">
+                    <strong>Total Passengers:</strong>
+                    <div class="fw-bold text-success fs-5">{{getTotalPax(selectedAsk.paxCount)}}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                  <h6 class="card-title text-primary mb-3">
+                    <i class="bi bi-currency-rupee me-2"></i>Budget
+                  </h6>
+                  <div class="mb-2">
+                    <strong>Minimum Budget:</strong>
+                    <div class="fw-bold text-success">{{formatCurrency(selectedAsk.budget?.min)}}</div>
+                  </div>
+                  <div class="mb-2">
+                    <strong>Maximum Budget:</strong>
+                    <div class="fw-bold text-success">{{formatCurrency(selectedAsk.budget?.max)}}</div>
+                  </div>
+                  <div class="mt-2 pt-2 border-top">
+                    <strong>Budget Range:</strong>
+                    <div class="fw-bold text-primary">
+                      {{formatCurrency(selectedAsk.budget?.min)}} - {{formatCurrency(selectedAsk.budget?.max)}}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                  <h6 class="card-title text-primary mb-3">
+                    <i class="bi bi-file-text me-2"></i>Package Details
+                  </h6>
+                  <p class="text-muted" *ngIf="selectedAsk.packageDetails">{{selectedAsk.packageDetails}}</p>
+                  <p class="text-muted" *ngIf="!selectedAsk.packageDetails">No package details provided</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Leads Section -->
+          <div class="card border-0 shadow-sm mb-3" *ngIf="selectedAsk.leads && selectedAsk.leads.length > 0">
+            <div class="card-body">
+              <h6 class="card-title text-primary mb-3">
+                <i class="bi bi-inbox me-2"></i>Leads ({{selectedAsk.leads.length}})
+              </h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                  <thead>
+                    <tr>
+                      <th>Provider</th>
+                      <th>Proposal</th>
+                      <th>Price</th>
+                      <th>Inclusions</th>
+                      <th>Exclusions</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let lead of selectedAsk.leads">
+                      <td>
+                        <div class="fw-bold">{{getUserDisplayName(lead.userId)}}</div>
+                        <small class="text-muted" *ngIf="lead.userId?.email">{{lead.userId.email}}</small>
+                      </td>
+                      <td>
+                        <div class="small" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                          {{lead.proposal || 'N/A'}}
+                        </div>
+                      </td>
+                      <td>
+                        <span class="fw-bold text-success">{{formatCurrency(lead.price)}}</span>
+                      </td>
+                      <td>
+                        <ul class="list-unstyled small mb-0" *ngIf="lead.inclusions && lead.inclusions.length > 0">
+                          <li *ngFor="let inc of lead.inclusions">• {{inc}}</li>
+                        </ul>
+                        <span class="text-muted small" *ngIf="!lead.inclusions || lead.inclusions.length === 0">N/A</span>
+                      </td>
+                      <td>
+                        <ul class="list-unstyled small mb-0" *ngIf="lead.exclusions && lead.exclusions.length > 0">
+                          <li *ngFor="let exc of lead.exclusions">• {{exc}}</li>
+                        </ul>
+                        <span class="text-muted small" *ngIf="!lead.exclusions || lead.exclusions.length === 0">N/A</span>
+                      </td>
+                      <td>
+                        <span class="badge rounded-pill" [ngClass]="getStatusClass(lead.status)">
+                          {{getStatusLabel(lead.status)}}
+                        </span>
+                      </td>
+                      <td>
+                        <small class="text-muted">{{formatDate(lead.createdAt)}}</small>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-info" *ngIf="!selectedAsk.leads || selectedAsk.leads.length === 0">
+            <i class="bi bi-info-circle me-2"></i>No leads/proposals for this ask yet.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

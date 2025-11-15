@@ -358,4 +358,8 @@ export class BannerRequestsComponent implements OnInit, AfterViewInit {
   getUpiTransactionId(payment: PaymentDetails | null): string {
     return payment?.upiTransactionId || '';
   }
+
+  onImageError(event: any): void {
+    event.target.src = 'assets/images/placeholder-image.png';
+  }
 }

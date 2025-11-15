@@ -62,9 +62,19 @@ export class SideBarService {
           icon: 'calendar',
         },
         {
-          title:'Event Regesteration',
+          title:'Event Registration',
           link:'payment',
           icon:'p'
+        },
+        {
+          title: 'Travel Ask Management',
+          link: 'askManagement',
+          icon: 'question-circle',
+        },
+        {
+          title: 'Travel Lead Management',
+          link: 'leadManagement',
+          icon: 'briefcase',
         },
         // {
         //   title: ' Event And participation ',

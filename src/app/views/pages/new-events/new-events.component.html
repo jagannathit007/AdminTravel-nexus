@@ -90,6 +90,7 @@
                class="card-img-top rounded-top-4 img-hover-zoom"
                 style="height: 200px; object-fit: cover"
                 alt="Event Banner"
+                onerror="this.src='assets/images/placeholder-image.png'"
               />
               <div
                 *ngIf="!event.bannerImage"
@@ -546,6 +547,33 @@
                   </div>
                 </div>
               </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="capacity" class="form-label">Capacity <span class="text-danger">*</span></label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="capacity"
+                    placeholder="Enter maximum capacity"
+                    [(ngModel)]="eventForm.capacity"
+                    name="capacity"
+                    min="1"
+                    required
+                    (blur)="onFieldBlur('capacity')"
+                    [class.is-invalid]="validationErrors.capacity"
+                  />
+                  <div
+                    class="invalid-feedback"
+                    *ngIf="validationErrors.capacity"
+                  >
+                    {{ validationErrors.capacity }}
+                  </div>
+                  <small class="text-muted"
+                    >Enter the maximum number of attendees</small
+                  >
+                </div>
+              </div>
             </form>
           </div>
 
@@ -747,33 +775,10 @@
                 </div>
               </div>
 
-              <!-- Capacity and Banner -->
+              <!-- Banner Image -->
               <div class="mb-4">
                 <h6 class="text-primary mb-3">Additional Details</h6>
                 <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label for="capacity" class="form-label">Capacity</label>
-                    <input
-                      type="number"
-                      class="form-control"
-                      id="capacity"
-                      placeholder="Enter maximum capacity"
-                      [(ngModel)]="eventForm.capacity"
-                      name="capacity"
-                      min="1"
-                      (blur)="onFieldBlur('capacity')"
-                      [class.is-invalid]="validationErrors.capacity"
-                    />
-                    <div
-                      class="invalid-feedback"
-                      *ngIf="validationErrors.capacity"
-                    >
-                      {{ validationErrors.capacity }}
-                    </div>
-                    <small class="text-muted"
-                      >Leave empty for unlimited capacity</small
-                    >
-                  </div>
                   <div class="col-md-6 mb-3">
                     <label for="bannerImage" class="form-label"
                       >Banner Image</label
@@ -1876,6 +1881,35 @@
                   </div>
                 </div>
               </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="editCapacity" class="form-label"
+                    >Capacity <span class="text-danger">*</span></label
+                  >
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="editCapacity"
+                    placeholder="Enter maximum capacity"
+                    [(ngModel)]="editEventForm.capacity"
+                    name="editCapacity"
+                    min="1"
+                    required
+                    (blur)="onFieldBlur('capacity', true)"
+                    [class.is-invalid]="editValidationErrors.capacity"
+                  />
+                  <div
+                    class="invalid-feedback"
+                    *ngIf="editValidationErrors.capacity"
+                  >
+                    {{ editValidationErrors.capacity }}
+                  </div>
+                  <small class="text-muted"
+                    >Enter the maximum number of attendees</small
+                  >
+                </div>
+              </div>
             </form>
           </div>
 
@@ -2077,35 +2111,10 @@
                 </div>
               </div>
 
-              <!-- Capacity and Banner -->
+              <!-- Banner Image -->
               <div class="mb-4">
                 <h6 class="text-primary mb-3">Additional Details</h6>
                 <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label for="editCapacity" class="form-label"
-                      >Capacity</label
-                    >
-                    <input
-                      type="number"
-                      class="form-control"
-                      id="editCapacity"
-                      placeholder="Enter maximum capacity"
-                      [(ngModel)]="editEventForm.capacity"
-                      name="editCapacity"
-                      min="1"
-                      (blur)="onFieldBlur('capacity', true)"
-                      [class.is-invalid]="editValidationErrors.capacity"
-                    />
-                    <div
-                      class="invalid-feedback"
-                      *ngIf="editValidationErrors.capacity"
-                    >
-                      {{ editValidationErrors.capacity }}
-                    </div>
-                    <small class="text-muted"
-                      >Leave empty for unlimited capacity</small
-                    >
-                  </div>
                   <div class="col-md-6 mb-3">
                     <label for="editBannerImage" class="form-label"
                       >Banner Image</label
@@ -3001,6 +3010,7 @@
             class="w-100 img-hover-zoom"
             style="height: 250px; object-fit: cover"
             alt="Event Banner"
+            onerror="this.src='assets/images/placeholder-image.png'"
           />
           <div
             class="position-absolute top-0 start-0 w-100 h-100"
@@ -3151,6 +3161,7 @@
                             height="40"
                             style="object-fit: cover"
                             alt="Sponsor Logo"
+                            onerror="this.src='assets/images/placeholder-image.png'"
                           />
                         </div>
                         <div class="flex-grow-1">
@@ -3201,6 +3212,7 @@
                             height="50"
                             style="object-fit: cover"
                             alt="Speaker Photo"
+                            onerror="this.src='assets/images/placeholder-image.png'"
                           />
                         </div>
                         <div class="flex-grow-1">
@@ -3355,6 +3367,7 @@
                                   class="img-fluid rounded shadow-sm"
                                   style="max-height: 200px; object-fit: cover"
                                   [alt]="coupon.title"
+                                  onerror="this.src='assets/images/placeholder-image.png'"
                                 />
                               </div>
                             </div>
@@ -3581,6 +3594,7 @@
                       style="height: 200px; object-fit: cover"
                       alt="Gallery Image"
                       loading="lazy"
+                      onerror="this.src='assets/images/placeholder-image.png'"
                     />
                     <div class="position-absolute top-0 end-0 m-2">
                       <button
@@ -3884,6 +3898,7 @@
                       max-width: 100%;
                       object-fit: contain;
                     "
+                    onerror="this.src='assets/images/placeholder-image.png'"
                     alt="QR Code Preview"
                   />
                 </div>

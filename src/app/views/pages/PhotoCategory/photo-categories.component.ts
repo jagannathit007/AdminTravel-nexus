@@ -154,32 +154,43 @@ export class PhotoCategoriesComponent implements OnInit, AfterViewInit {
   }
 
   onImagesSelect(event: any): void {
-    const files = Array.from(event.target.files) as File[];
-    if (files.length === 0) return;
+    const newFiles = Array.from(event.target.files) as File[];
+    if (newFiles.length === 0) return;
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     const maxSize = 5 * 1024 * 1024; // 5MB
     const maxFiles = 10;
 
-    if (files.length > maxFiles) {
-      swalHelper.showToast(`Maximum ${maxFiles} images allowed`, 'error');
+    // Calculate total files after adding new ones
+    const totalFilesAfterAdd = this.selectedFiles.length + newFiles.length;
+
+    if (totalFilesAfterAdd > maxFiles) {
+      swalHelper.showToast(`Maximum ${maxFiles} images allowed. You already have ${this.selectedFiles.length} selected.`, 'error');
+      // Reset the input
+      event.target.value = '';
       return;
     }
 
-    for (const file of files) {
+    // Validate each new file
+    for (const file of newFiles) {
       if (!allowedTypes.includes(file.type)) {
         swalHelper.showToast('Please select valid image files (JPG, PNG)', 'error');
+        // Reset the input
+        event.target.value = '';
         return;
       }
 
       if (file.size > maxSize) {
         swalHelper.showToast('File size should not exceed 5MB per image', 'error');
+        // Reset the input
+        event.target.value = '';
         return;
       }
     }
 
-    this.selectedFiles = files;
-    this.newCategory.images = files;
+    // Append new files to existing ones
+    this.selectedFiles = [...this.selectedFiles, ...newFiles];
+    this.newCategory.images = this.selectedFiles;
     this.generateImagePreviews();
   }
 
@@ -429,5 +440,9 @@ export class PhotoCategoriesComponent implements OnInit, AfterViewInit {
 
   getImageCount(category: PhotoCategory): number {
     return category.images ? category.images.length : 0;
+  }
+
+  onImageError(event: any): void {
+    event.target.src = 'assets/images/placeholder-image.png';
   }
 }

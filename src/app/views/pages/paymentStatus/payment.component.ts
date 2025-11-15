@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { environment } from 'src/env/env.local';
 import { EventService } from '../../../services/auth.service';
 import { swalHelper } from '../../../core/constants/swal-helper';
@@ -34,12 +35,6 @@ export class EventPaymentsComponent implements OnInit, AfterViewInit {
   };
   loading: boolean = false;
   searchQuery: string = '';
-  selectedEvent: any | null = null;
-  registrations: any = null;
-  registrationsLoading: boolean = false;
-  registrationsPage: number = 1;
-  registrationsLimit: number = 10;
-  viewRegistrationsModal: any;
   paymentScreenshotModal: any;
   selectedPaymentScreenshot: string | null = null;
   registrationDetailsModal: any;
@@ -53,7 +48,7 @@ export class EventPaymentsComponent implements OnInit, AfterViewInit {
     { value: '', label: 'All Event Types' },
     { value: 'online', label: 'Online' },
     { value: 'offline', label: 'Offline' },
-    { value: 'hybrid', label: 'Hybrid' }
+    // { value: 'hybrid', label: 'Hybrid' }
   ];
 
   eventPriceOptions = [
@@ -76,6 +71,7 @@ export class EventPaymentsComponent implements OnInit, AfterViewInit {
 
   constructor(
     private eventService: EventService,
+    private router: Router,
     private cdr: ChangeDetectorRef
   ) {
     this.searchSubject.pipe(debounceTime(500)).subscribe(() => {
@@ -89,11 +85,6 @@ export class EventPaymentsComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     setTimeout(() => {
-      const viewRegistrationsModalElement = document.getElementById('viewRegistrationsModal');
-      if (viewRegistrationsModalElement) {
-        this.viewRegistrationsModal = new bootstrap.Modal(viewRegistrationsModalElement);
-      }
-      
       const paymentScreenshotModalElement = document.getElementById('paymentScreenshotModal');
       if (paymentScreenshotModalElement) {
         this.paymentScreenshotModal = new bootstrap.Modal(paymentScreenshotModalElement);
@@ -195,124 +186,15 @@ export class EventPaymentsComponent implements OnInit, AfterViewInit {
   }
 
   openViewRegistrationsModal(event: any): void {
-    this.selectedEvent = event;
-    this.registrationsPage = 1;
-    this.fetchRegistrations();
-    this.showViewRegistrationsModal();
-  }
-
-  async fetchRegistrations(): Promise<void> {
-    if (!this.selectedEvent) return;
-
-    this.registrationsLoading = true;
-    try {
-      const response = await this.eventService.getRegistrationsByEventId(
-        this.selectedEvent._id,
-        this.registrationsPage,
-        this.registrationsLimit
-      );
-      this.registrations = response;
-      
-      // Ensure registrationStatus is set for each registration (only pending or confirmed)
-      if (this.registrations?.data?.registrations) {
-        this.registrations.data.registrations.forEach((reg: any) => {
-          if (!reg.registrationDetails) {
-            reg.registrationDetails = {};
-          }
-          if (!reg.registrationDetails.status) {
-            reg.registrationDetails.status = 'pending';
-          }
-          // Normalize to only pending or confirmed (remove cancelled)
-          if (reg.registrationDetails.status === 'cancelled') {
-            reg.registrationDetails.status = 'pending';
-          }
-        });
+    this.router.navigate(['/event-registration-list'], {
+      queryParams: {
+        eventId: event._id,
+        eventTitle: event.title || event.name || 'Event'
       }
-      
-      this.cdr.detectChanges();
-    } catch (error) {
-      console.error('Error fetching registrations:', error);
-      swalHelper.showToast('Failed to fetch registrations', 'error');
-    } finally {
-      this.registrationsLoading = false;
-    }
+    });
   }
 
-  changeRegistrationsPage(page: number): void {
-    if (page >= 1 && page <= (this.registrations?.data.totalPages || 1)) {
-      this.registrationsPage = page;
-      this.fetchRegistrations();
-    }
-  }
 
-  async updatePaymentStatusAction(registration: any): Promise<void> {
-    const currentStatus = registration.status || 'pending';
-    const statusOptions = ['pending', 'completed', 'refunded'];
-    const currentIndex = statusOptions.indexOf(currentStatus);
-    const nextIndex = (currentIndex + 1) % statusOptions.length;
-    const newStatus = statusOptions[nextIndex];
-
-    const result = await swalHelper.confirmation(
-      'Update Payment Status',
-      `Change payment status from "${currentStatus}" to "${newStatus}"?`,
-      'warning'
-    );
-
-    if (result.isConfirmed) {
-      this.registrationsLoading = true;
-      try {
-        const response = await this.eventService.updatePaymentStatus(registration._id, newStatus);
-        if (response.success) {
-          swalHelper.showToast('Payment status updated successfully', 'success');
-          this.fetchRegistrations();
-        } else {
-          swalHelper.showToast(response.message || 'Failed to update status', 'error');
-        }
-      } catch (error: any) {
-        console.error('Error updating payment status:', error);
-        swalHelper.showToast(error?.response?.data?.message || 'Failed to update status', 'error');
-      } finally {
-        this.registrationsLoading = false;
-      }
-    }
-  }
-
-  async toggleRegistrationStatus(registration: any): Promise<void> {
-    const currentStatus = registration.registrationDetails?.status || 'pending';
-    const newStatus = currentStatus === 'pending' ? 'confirmed' : 'pending';
-
-    const result = await swalHelper.confirmation(
-      'Update Registration Status',
-      `Change registration status from "${currentStatus}" to "${newStatus}"?`,
-      'warning'
-    );
-
-    if (result.isConfirmed) {
-      this.registrationsLoading = true;
-      try {
-        const response = await this.eventService.updateRegistrationStatus(
-          registration._id, 
-          newStatus
-        );
-        
-        if (response.success) {
-          swalHelper.showToast('Registration status updated successfully', 'success');
-          if (!registration.registrationDetails) {
-            registration.registrationDetails = {};
-          }
-          registration.registrationDetails.status = newStatus;
-          this.cdr.detectChanges();
-        } else {
-          swalHelper.showToast(response.message || 'Failed to update registration status', 'error');
-        }
-      } catch (error: any) {
-        console.error('Error updating registration status:', error);
-        swalHelper.showToast(error?.response?.data?.message || 'Failed to update registration status', 'error');
-      } finally {
-        this.registrationsLoading = false;
-      }
-    }
-  }
 
   getRegistrationStatusToggleClass(status: string): string {
     if (!status || status === 'pending') {
@@ -371,20 +253,6 @@ export class EventPaymentsComponent implements OnInit, AfterViewInit {
     }
   }
 
-  showViewRegistrationsModal(): void {
-    this.cdr.detectChanges();
-    if (this.viewRegistrationsModal) {
-      this.viewRegistrationsModal.show();
-    }
-  }
-
-  closeViewRegistrationsModal(): void {
-    if (this.viewRegistrationsModal) {
-      this.viewRegistrationsModal.hide();
-    }
-    this.selectedEvent = null;
-    this.registrations = null;
-  }
 
   getUserName(userDetails: any | null): string {
     if (typeof userDetails === 'string') {
@@ -502,7 +370,7 @@ export class EventPaymentsComponent implements OnInit, AfterViewInit {
     if (reg.eventId && typeof reg.eventId === 'object') {
       return reg.eventId.title || 'Event';
     }
-    return this.selectedEvent?.title || 'Event';
+    return 'Event';
   }
 
   getEventStartDate(reg: any): string {
@@ -513,7 +381,7 @@ export class EventPaymentsComponent implements OnInit, AfterViewInit {
     if (reg.eventId && typeof reg.eventId === 'object') {
       return reg.eventId.startDate || '';
     }
-    return this.selectedEvent?.startDate || '';
+    return '';
   }
 
   getEventEndDate(reg: any): string {
@@ -524,7 +392,7 @@ export class EventPaymentsComponent implements OnInit, AfterViewInit {
     if (reg.eventId && typeof reg.eventId === 'object') {
       return reg.eventId.endDate || '';
     }
-    return this.selectedEvent?.endDate || '';
+    return '';
   }
 
   getCardId(reg: any): string {

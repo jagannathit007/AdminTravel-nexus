@@ -186,6 +186,8 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   Math = Math;
   private searchSubject = new Subject<string>();
   registerModal: any;
+  userDetailsModal: any;
+  selectedUserDetails: Registration | null = null;
 
   constructor(
     private registerService: RegisterUserAuthService,
@@ -215,6 +217,10 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       const modalElement = document.getElementById('registerModal');
       if (modalElement) {
         this.registerModal = new bootstrap.Modal(modalElement);
+      }
+      const userDetailsModalElement = document.getElementById('userDetailsModal');
+      if (userDetailsModalElement) {
+        this.userDetailsModal = new bootstrap.Modal(userDetailsModalElement);
       }
     }, 300);
   }
@@ -901,5 +907,19 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     return additionalRegions.map(region => 
       `${region.name} - Countries: ${region.countries?.join(', ') || 'N/A'}`
     ).join('\n');
+  }
+
+  openUserDetailsModal(registration: Registration): void {
+    this.selectedUserDetails = registration;
+    this.cdr.detectChanges();
+    if (this.userDetailsModal) {
+      this.userDetailsModal.show();
+    } else {
+      const modalElement = document.getElementById('userDetailsModal');
+      if (modalElement) {
+        this.userDetailsModal = new bootstrap.Modal(modalElement);
+        this.userDetailsModal.show();
+      }
+    }
   }
 }

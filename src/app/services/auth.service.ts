@@ -900,7 +900,7 @@ export class EventService {
             this.headers.push({ Authorization: `Bearer ${token}` });
         }
     };
-    async getRegistrationsByEventId(eventId: string, page: number = 1, limit: number = 10): Promise<any> {
+    async getRegistrationsByEventId(eventId: string, page: number = 1, limit: number = 10, status?: string, paymentStatus?: string, search: string = ""): Promise<any> {
         try {
             this.getHeaders();
             const response = await this.apiManager.request(
@@ -908,7 +908,7 @@ export class EventService {
                     url: `${apiEndpoints.GET_REGISTRATIONS_BY_EVENT_ID}?page=${page}&limit=${limit}`,
                     method: 'POST',
                 },
-                { eventId },
+                { eventId, page, limit, status, paymentStatus, search },
                 this.headers
             );
             return response;
@@ -6592,6 +6592,448 @@ export class FeedbackService {
     } catch (error: any) {
       console.error('Delete Feedback Error:', error.message || error);
       swalHelper.showToast(error.message || 'Failed to delete feedback', 'error');
+      throw error;
+    }
+  }
+}
+
+// Travel Ask Interfaces
+export interface TravelAsk {
+  _id: string;
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+    mobile_number: string;
+    business_name: string;
+    city: string;
+    state: string;
+    regions: Array<{
+      _id: string;
+      name: string;
+      code: string;
+    }>;
+    profilePic?: string;
+  };
+  title: string;
+  description: string;
+  region: {
+    _id: string;
+    name: string;
+    code: string;
+    countries?: string[];
+    description?: string;
+  };
+  packageDetails: string;
+  budget: {
+    min: number;
+    max: number;
+  };
+  travelDates: {
+    start: string;
+    end: string;
+  };
+  paxCount: {
+    adults: number;
+    children: number;
+    infants: number;
+  };
+  status: 'active' | 'inactive' | 'completed' | 'cancelled';
+  isPublic: boolean;
+  isDeleted: boolean;
+  leads: Array<{
+    _id: string;
+    userId: {
+      _id: string;
+      name: string;
+      business_name: string;
+      mobile_number: string;
+      email: string;
+      profilePic?: string;
+      city?: string;
+      state?: string;
+      regions?: Array<{
+        _id: string;
+        name: string;
+        code: string;
+      }>;
+    };
+    proposal: string;
+    price: number;
+    inclusions: string[];
+    exclusions: string[];
+    status: string;
+    createdAt: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TravelAskResponse {
+  docs: TravelAsk[];
+  totalDocs: number;
+  limit: number;
+  page: number;
+  totalPages: number;
+  pagingCounter: number;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
+  prevPage: number | null;
+  nextPage: number | null;
+  analytics?: {
+    totalAsks: number;
+    totalPublicAsks: number;
+    totalRegionalAsks: number;
+    avgBudget: number;
+    totalProposals: number;
+  };
+}
+
+export interface TravelAskDetailResponse {
+  success: boolean;
+  message: string;
+  data: {
+    ask: TravelAsk;
+  };
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class TravelAskService {
+  private headers: any = [];
+
+  constructor(private apiManager: ApiManager, private storage: AppStorage) {}
+
+  private getHeaders = () => {
+    this.headers = [];
+    let token = this.storage.get(common.TOKEN);
+    
+    if (token != null) {
+      this.headers.push({ Authorization: `Bearer ${token}` });
+    }
+  };
+
+  async getAllAsks(data: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    region?: string;
+    status?: string | string[];
+    isPublic?: boolean;
+    userId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    minBudget?: number;
+    maxBudget?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<TravelAskResponse> {
+    try {
+      this.getHeaders();
+      
+      const requestData = {
+        page: data.page || 1,
+        limit: data.limit || 50,
+        search: data.search || '',
+        region: data.region || undefined,
+        status: data.status || undefined,
+        isPublic: data.isPublic !== undefined ? data.isPublic : undefined,
+        userId: data.userId || undefined,
+        dateFrom: data.dateFrom || undefined,
+        dateTo: data.dateTo || undefined,
+        minBudget: data.minBudget || undefined,
+        maxBudget: data.maxBudget || undefined,
+        sortBy: data.sortBy || 'createdAt',
+        sortOrder: data.sortOrder || 'desc'
+      };
+
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.GET_ALL_ASKS,
+          method: 'POST',
+        },
+        requestData,
+        this.headers
+      );
+
+      if (response && response.data) {
+        return response.data;
+      }
+      
+      return {
+        docs: [],
+        totalDocs: 0,
+        limit: requestData.limit,
+        page: requestData.page,
+        totalPages: 0,
+        pagingCounter: 1,
+        hasPrevPage: false,
+        hasNextPage: false,
+        prevPage: null,
+        nextPage: null
+      };
+    } catch (error) {
+      console.error('API Error:', error);
+      swalHelper.showToast('Failed to fetch asks', 'error');
+      throw error;
+    }
+  }
+
+  async getAskDetail(askId: string): Promise<TravelAskDetailResponse> {
+    try {
+      this.getHeaders();
+      
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.GET_ASK_DETAIL,
+          method: 'POST',
+        },
+        { askId },
+        this.headers
+      );
+
+      // Handle response structure - may be direct data or wrapped
+      if (response && response.data) {
+        // If data already has ask structure, return as is
+        if ((response.data as any).ask) {
+          return {
+            success: true,
+            message: (response as any).message || 'Success',
+            data: response.data
+          };
+        }
+        
+        // If data is the ask itself, wrap it
+        return {
+          success: true,
+          message: (response as any).message || 'Success',
+          data: { ask: response.data }
+        };
+      }
+
+      // If response itself has the ask structure directly
+      if (response && (response as any).ask) {
+        return {
+          success: true,
+          message: (response as any).message || 'Success',
+          data: { ask: (response as any).ask }
+        };
+      }
+
+      throw new Error('Invalid response format');
+    } catch (error) {
+      console.error('API Error:', error);
+      swalHelper.showToast('Failed to fetch ask details', 'error');
+      throw error;
+    }
+  }
+}
+
+// Travel Lead Interfaces
+export interface TravelLead {
+  _id: string;
+  createdBy: {
+    _id: string;
+    name: string;
+    email: string;
+    mobile_number: string;
+    business_name: string;
+    city: string;
+    state: string;
+    regions: Array<{
+      _id: string;
+      name: string;
+      code: string;
+    }>;
+    profilePic?: string;
+  };
+  customerName: string;
+  customerMobile: string;
+  customerEmail: string;
+  region: {
+    _id: string;
+    name: string;
+    code: string;
+    countries?: string[];
+    description?: string;
+  };
+  packageDetails: string;
+  budget: number;
+  status: 'pending' | 'active' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+  assignmentStatus?: string;
+  assignedTo: Array<{
+    _id: string;
+    userId: {
+      _id: string;
+      name: string;
+      business_name: string;
+      mobile_number: string;
+      email: string;
+      profilePic?: string;
+      city?: string;
+      state?: string;
+      regions?: Array<{
+        _id: string;
+        name: string;
+        code: string;
+      }>;
+    };
+    status: string;
+    assignedAt: string;
+    acceptedAt?: string;
+    notes?: string;
+  }>;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TravelLeadResponse {
+  docs: TravelLead[];
+  totalDocs: number;
+  limit: number;
+  page: number;
+  totalPages: number;
+  pagingCounter: number;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
+  prevPage: number | null;
+  nextPage: number | null;
+  analytics?: {
+    totalLeads: number;
+    totalBudget: number;
+    avgBudget: number;
+    totalAssignedDMCs: number;
+    acceptedAssignments: number;
+  };
+  regionDistribution?: Array<{
+    regionName: string;
+    count: number;
+    totalBudget: number;
+  }>;
+}
+
+export interface TravelLeadDetailResponse {
+  success: boolean;
+  message: string;
+  data: {
+    lead: TravelLead;
+  };
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class TravelLeadService {
+  private headers: any = [];
+
+  constructor(private apiManager: ApiManager, private storage: AppStorage) {}
+
+  private getHeaders = () => {
+    this.headers = [];
+    let token = this.storage.get(common.TOKEN);
+    
+    if (token != null) {
+      this.headers.push({ Authorization: `Bearer ${token}` });
+    }
+  };
+
+  async getAllLeads(data: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<TravelLeadResponse> {
+    try {
+      this.getHeaders();
+      
+      const requestData: any = {
+        page: data.page || 1,
+        limit: data.limit || 50,
+        search: data.search || '',
+        sortBy: data.sortBy || 'createdAt',
+        sortOrder: data.sortOrder || 'desc'
+      };
+
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.GET_ALL_LEADS,
+          method: 'POST',
+        },
+        requestData,
+        this.headers
+      );
+
+      if (response && response.data) {
+        return response.data;
+      }
+      
+      return {
+        docs: [],
+        totalDocs: 0,
+        limit: requestData.limit,
+        page: requestData.page,
+        totalPages: 0,
+        pagingCounter: 1,
+        hasPrevPage: false,
+        hasNextPage: false,
+        prevPage: null,
+        nextPage: null
+      };
+    } catch (error) {
+      console.error('API Error:', error);
+      swalHelper.showToast('Failed to fetch leads', 'error');
+      throw error;
+    }
+  }
+
+  async getLeadDetail(leadId: string): Promise<TravelLeadDetailResponse> {
+    try {
+      this.getHeaders();
+      
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.GET_LEAD_DETAIL,
+          method: 'POST',
+        },
+        { leadId },
+        this.headers
+      );
+
+      // Handle response structure - may be direct data or wrapped
+      if (response && response.data) {
+        // If data already has lead structure, return as is
+        if ((response.data as any).lead) {
+          return {
+            success: true,
+            message: (response as any).message || 'Success',
+            data: response.data
+          };
+        }
+        
+        // If data is the lead itself, wrap it
+        return {
+          success: true,
+          message: (response as any).message || 'Success',
+          data: { lead: response.data }
+        };
+      }
+
+      // If response itself has the lead structure directly
+      if (response && (response as any).lead) {
+        return {
+          success: true,
+          message: (response as any).message || 'Success',
+          data: { lead: (response as any).lead }
+        };
+      }
+
+      throw new Error('Invalid response format');
+    } catch (error) {
+      console.error('API Error:', error);
+      swalHelper.showToast('Failed to fetch lead details', 'error');
       throw error;
     }
   }

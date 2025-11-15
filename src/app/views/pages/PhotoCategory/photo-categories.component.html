@@ -55,7 +55,8 @@
                       [src]="getImageUrl(category.images[0])"
                       alt="Category Image"
                       class="category-thumbnail rounded shadow-sm main-image"
-                      style="width: 60px; height: 60px; object-fit: cover;">
+                      style="width: 60px; height: 60px; object-fit: cover;"
+                      (error)="onImageError($event)">
                     <div *ngIf="category.images.length > 1" class="image-overlay">
                       <span class="badge bg-dark">+{{category.images.length - 1}}</span>
                     </div>
@@ -166,7 +167,8 @@
                    class="img-fluid rounded shadow-sm w-100"
                    style="height: 200px; object-fit: cover; cursor: pointer;"
                    [attr.data-bs-toggle]="'modal'"
-                   [attr.data-bs-target]="'#imageModal' + i">
+                   [attr.data-bs-target]="'#imageModal' + i"
+                   (error)="onImageError($event)">
               <div class="image-overlay-actions position-absolute top-0 end-0 m-2">
                 <!-- <button class="btn btn-danger btn-sm rounded-circle p-1" 
                         (click)="removeImageFromCategory(image)"
@@ -241,13 +243,19 @@
 
           <div class="mb-3">
             <label for="categoryImages" class="form-label">Images <span class="text-danger" *ngIf="!editMode">*</span></label>
-            <input type="file" class="form-control" id="categoryImages" accept="image/*" multiple
+            <input type="file" class="form-control" id="categoryImages" accept="image/jpeg,image/jpg,image/png" multiple
               (change)="onImagesSelect($event)" name="categoryImages" #imagesInput
               [class.is-invalid]="selectedFiles.length === 0 && !editMode && formSubmitted">
             <div class="invalid-feedback" *ngIf="selectedFiles.length === 0 && !editMode && formSubmitted">
               At least one image is required.
             </div>
-            <small class="form-text text-muted">Supported formats: JPG, PNG (Max: 5MB each, up to 10 images)</small>
+            <small class="form-text text-muted">
+              Supported formats: JPG, PNG (Max: 5MB each, up to 10 images). 
+              <strong>You can select multiple images at once by holding Ctrl (Windows) or Cmd (Mac) while clicking.</strong>
+            </small>
+            <div *ngIf="selectedFiles.length > 0" class="mt-2">
+              <span class="badge bg-info">{{selectedFiles.length}} image(s) selected</span>
+            </div>
           </div>
 
           <div *ngIf="imagePreviews.length > 0" class="mb-3">
@@ -257,7 +265,8 @@
                 <div class="position-relative">
                   <img [src]="preview" alt="Preview {{i + 1}}" 
                        class="img-thumbnail w-100" 
-                       style="height: 100px; object-fit: cover;">
+                       style="height: 100px; object-fit: cover;"
+                       (error)="onImageError($event)">
                   <button type="button" 
                           class="btn btn-danger btn-sm rounded-circle position-absolute top-0 end-0 m-1 p-1"
                           (click)="removeImagePreview(i)"

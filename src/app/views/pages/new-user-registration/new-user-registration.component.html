@@ -40,22 +40,27 @@
       <table class="table table-hover align-middle mb-0">
         <thead class="bg-light">
           <tr>
-            <th class="ps-4 py-3">Name</th>
+            <th class="ps-4 py-3">Sr. No.</th>
+            <th class="py-3">Name</th>
             <th class="py-3">Business Name</th>
-            <th class="py-3">Business Type</th> <!-- Added Business Type column -->
+            <th class="py-3">Business Type</th>
             <th class="py-3">Mobile</th>
-            <th class="py-3">Email</th>
-            <th class="py-3">Location</th>
+            <!-- <th class="py-3">Email</th> -->
+            <!-- <th class="py-3">Location</th> -->
             <th class="py-3">Specializations</th>
             <th class="py-3">Services</th>
             <th class="py-3">Regions</th>
-            <th class="py-3">Registration Date</th>
-            <th class="text-end pe-4 py-3">Action</th>
+            <!-- <th class="py-3">Registration Date</th> -->
+            <th class="text-center py-3">Action</th>
+            <th class="text-center py-3">View Details</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let registration of registrations.docs | paginate: { id: paginationConfig.id, itemsPerPage: payload.limit, currentPage: payload.page, totalItems: registrations?.totalDocs }; let i=index" class="border-bottom">
             <td class="ps-4 py-3">
+              <span class="fw-semibold">{{(payload.page - 1) * payload.limit + i + 1}}</span>
+            </td>
+            <td class="py-3">
               <div class="d-flex align-items-center">
                 <div>
                   <div class="fw-bold text-dark">{{registration.name || 'Unknown User'}}</div>
@@ -75,18 +80,18 @@
                 {{registration.mobile_number || 'N/A'}}
               </span>
             </td>
-            <td class="py-3">
+            <!-- <td class="py-3">
               <span class="d-flex align-items-center">
                 <i class="bi bi-envelope-fill text-muted me-2"></i>
                 {{registration.email || 'N/A'}}
               </span>
-            </td>
-            <td class="py-3">
+            </td> -->
+            <!-- <td class="py-3">
               <div class="small">
                 <div>{{registration.city || 'N/A'}}, {{registration.state || 'N/A'}}</div>
                 <div class="text-muted">{{registration.country || 'N/A'}}</div>
               </div>
-            </td>
+            </td> -->
             <td class="py-3">
               <div class="small">
                 <span class="badge bg-primary me-1" *ngFor="let spec of registration.dmc_specializations?.slice(0, 2)">{{spec}}</span>
@@ -122,17 +127,25 @@
                 <span *ngIf="!registration.regions || registration.regions.length === 0" class="text-muted">N/A</span>
               </div>
             </td>
-            <td class="py-3">
+            <!-- <td class="py-3">
               <span class="small">{{formatDate(registration.createdAt)}}</span>
-            </td>
-            <td class="text-end pe-4 py-3">
+            </td> -->
+            <td class="text-center py-3">
               <button 
-                class="btn btn-success btn-sm rounded-pill px-3"
+                class="btn btn-success btn-xs rounded-pill"
                 (click)="acceptUser(registration)"
-                [disabled]="acceptingUser === registration._id">
-                <span *ngIf="acceptingUser === registration._id" class="spinner-border spinner-border-sm me-1" role="status"></span>
-                <i *ngIf="acceptingUser !== registration._id" class="bi bi-check-circle-fill me-1"></i>
-                {{ acceptingUser === registration._id ? 'Accepting...' : 'Accept' }}
+                [disabled]="acceptingUser === registration._id"
+                title="Accept User">
+                <span *ngIf="acceptingUser === registration._id" class="spinner-border spinner-border-sm" role="status"></span>
+                <i *ngIf="acceptingUser !== registration._id" class="bi bi-check-circle-fill"></i>
+              </button>
+            </td>
+            <td class="text-center py-3">
+              <button 
+                class="btn btn-outline-primary btn-xs rounded-circle p-1"
+                (click)="openUserDetailsModal(registration)"
+                title="View Details">
+                <i class="bi bi-eye"></i>
               </button>
             </td>
           </tr>
@@ -335,6 +348,183 @@
           <span *ngIf="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
           <i *ngIf="!loading" class="bi bi-save me-1"></i>
           {{ loading ? 'Registering...' : 'Register' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" role="dialog"
+  aria-labelledby="userDetailsModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+    <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+      <div class="modal-header bg-gradient-primary text-white">
+        <h5 class="modal-title fw-bold" id="userDetailsModalTitle">
+          <i class="bi bi-person-circle me-2"></i>User Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;" *ngIf="selectedUserDetails">
+        <div class="row g-4">
+          <!-- Personal Information -->
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-person me-2"></i>Personal Information</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small mb-1">Full Name</label>
+                    <p class="mb-0 fw-bold">{{selectedUserDetails.name || 'N/A'}}</p>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small mb-1">Email</label>
+                    <p class="mb-0">{{selectedUserDetails.email ? selectedUserDetails.email : 'N/A'}}</p>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small mb-1">Mobile Number</label>
+                    <p class="mb-0">{{selectedUserDetails.mobile_number || 'N/A'}}</p>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small mb-1">Registration ID</label>
+                    <p class="mb-0"><code>{{selectedUserDetails._id || 'N/A'}}</code></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Location Information -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-geo-alt me-2"></i>Location Details</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label text-muted small mb-1">Country</label>
+                    <p class="mb-0">{{selectedUserDetails.country || 'N/A'}}</p>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label text-muted small mb-1">State</label>
+                    <p class="mb-0">{{selectedUserDetails.state || 'N/A'}}</p>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label text-muted small mb-1">City</label>
+                    <p class="mb-0">{{selectedUserDetails.city || 'N/A'}}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Business Information -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-briefcase me-2"></i>Business Information</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label text-muted small mb-1">Business Name</label>
+                    <p class="mb-0 fw-semibold">{{selectedUserDetails.business_name || 'N/A'}}</p>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label text-muted small mb-1">Business Type</label>
+                    <p class="mb-0">
+                      <span class="badge bg-primary">{{selectedUserDetails?.business?.[0]?.business_type || 'N/A'}}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Specializations -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-star me-2"></i>Specializations</h6>
+              </div>
+              <div class="card-body">
+                <div *ngIf="selectedUserDetails.dmc_specializations && selectedUserDetails.dmc_specializations.length > 0">
+                  <span class="badge bg-primary me-1 mb-1" *ngFor="let spec of selectedUserDetails.dmc_specializations">{{spec}}</span>
+                </div>
+                <p *ngIf="!selectedUserDetails.dmc_specializations || selectedUserDetails.dmc_specializations.length === 0" class="text-muted mb-0">N/A</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Services Offered -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-list-check me-2"></i>Services Offered</h6>
+              </div>
+              <div class="card-body">
+                <div *ngIf="selectedUserDetails.services_offered && selectedUserDetails.services_offered.length > 0">
+                  <span class="badge bg-success me-1 mb-1" *ngFor="let service of selectedUserDetails.services_offered">{{service}}</span>
+                </div>
+                <p *ngIf="!selectedUserDetails.services_offered || selectedUserDetails.services_offered.length === 0" class="text-muted mb-0">N/A</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Regions -->
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-globe me-2"></i>Operating Regions</h6>
+              </div>
+              <div class="card-body">
+                <div *ngIf="selectedUserDetails.regions && selectedUserDetails.regions.length > 0">
+                  <div class="row g-3">
+                    <div class="col-md-6" *ngFor="let region of selectedUserDetails.regions">
+                      <div class="border rounded p-3">
+                        <h6 class="fw-semibold mb-2">{{region.name}}</h6>
+                        <p class="text-muted small mb-1"><strong>Countries:</strong></p>
+                        <div>
+                          <span class="badge bg-info me-1 mb-1" *ngFor="let country of region.countries">{{country}}</span>
+                        </div>
+                        <p *ngIf="region.description" class="text-muted small mt-2 mb-0">{{region.description}}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p *ngIf="!selectedUserDetails.regions || selectedUserDetails.regions.length === 0" class="text-muted mb-0">N/A</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Registration Date -->
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-calendar me-2"></i>Registration Information</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small mb-1">Registration Date</label>
+                    <p class="mb-0">{{formatDate(selectedUserDetails.createdAt)}}</p>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small mb-1">Last Updated</label>
+                    <p class="mb-0">{{selectedUserDetails.updatedAt ? formatDate(selectedUserDetails.updatedAt) : 'N/A'}}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Close
         </button>
       </div>
     </div>

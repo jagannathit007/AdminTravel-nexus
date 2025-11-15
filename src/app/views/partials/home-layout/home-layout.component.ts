@@ -25,14 +25,28 @@ export class HomeLayoutComponent implements OnInit {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
+    // Check if user is typing in an input field
+    const target = event.target as HTMLElement;
+    const isInputField = target?.tagName === 'INPUT' || 
+                         target?.tagName === 'TEXTAREA' ||
+                         target?.isContentEditable;
+    
+    // Always allow typing in input fields (including capital I with Shift+I)
+    if (isInputField) {
+      return;
+    }
+    
+    // Prevent developer tools shortcuts, but allow regular typing
+    // Only block when modifier keys (Ctrl/Alt/Meta) are pressed with 'i'
+    // Do NOT block Shift+I alone (that's just typing capital I)
     if (
-      (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) &&
-      event.key.toLowerCase() == 'i'
+      (event.ctrlKey || event.metaKey || event.altKey) &&
+      event.key.toLowerCase() === 'i'
     ) {
-      
+      // Prevent Ctrl+I, Alt+I, Meta+I, Ctrl+Shift+I (developer tools shortcuts)
       event.preventDefault();
     } else if (event.key === 'F12') {
-      // Prevents F12
+      // Prevents F12 (developer tools)
       event.preventDefault();
     }
   }

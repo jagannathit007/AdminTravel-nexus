@@ -302,7 +302,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
   eventTypes = [
     { label: 'offline', value: 'offline' },
     { label: 'online', value: 'online' },
-    { label: 'hybrid', value: 'hybrid' },
+    // { label: 'hybrid', value: 'hybrid' },
   ];
 
   statusOptions = [
@@ -617,31 +617,23 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
 
     const mapUrl = form.mapUrl?.trim();
     
-    // If event is online, validate Zoom URL
+    // If event is online, validate Zoom URL - only check for https: validation
     if (form.eventType === 'online') {
       if (!mapUrl) {
         errors.mapUrl = 'Zoom URL is required for online events';
         return false;
       }
       
-      // Validate URL format
-      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-      if (!urlPattern.test(mapUrl)) {
-        errors.mapUrl = 'Please enter a valid Zoom URL';
-        return false;
-      }
-      
-      // Optional: Check if it's a Zoom URL
-      if (!mapUrl.toLowerCase().includes('zoom')) {
-        errors.mapUrl = 'Please enter a valid Zoom meeting URL';
+      // Only validate that URL starts with https: or http:
+      if (!mapUrl.toLowerCase().startsWith('https://') && !mapUrl.toLowerCase().startsWith('http://')) {
+        errors.mapUrl = 'Please enter a valid URL starting with https:// or http://';
         return false;
       }
     } else {
-      // For offline/hybrid events, URL is optional but if provided should be valid
+      // For offline/hybrid events, URL is optional but if provided should start with https: or http:
       if (mapUrl) {
-        const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-        if (!urlPattern.test(mapUrl)) {
-          errors.mapUrl = 'Please enter a valid URL';
+        if (!mapUrl.toLowerCase().startsWith('https://') && !mapUrl.toLowerCase().startsWith('http://')) {
+          errors.mapUrl = 'Please enter a valid URL starting with https:// or http://';
           return false;
         }
       }
@@ -658,7 +650,12 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
 
     if (!touched.capacity) return true;
 
-    if (form.capacity && form.capacity <= 0) {
+    if (!form.capacity || form.capacity === null || form.capacity === undefined) {
+      errors.capacity = 'Capacity is required';
+      return false;
+    }
+
+    if (form.capacity <= 0) {
       errors.capacity = 'Capacity must be greater than 0';
       return false;
     }
@@ -1322,6 +1319,11 @@ async createEvent(): Promise<void> {
     ];
     formData.append('pricing', JSON.stringify(parsedPricing));
 
+    // Calculate isPaid based on total pricing
+    const totalPrice = (parsedPricing[0].ticketPrice + parsedPricing[0].stayFee + parsedPricing[1].ticketPrice + parsedPricing[1].stayFee);
+    const isPaid = totalPrice > 0;
+    formData.append('isPaid', isPaid.toString());
+
     // Banner Image
     if (this.eventForm.bannerImage instanceof File) {
       formData.append('bannerImage', this.eventForm.bannerImage);
@@ -1487,6 +1489,11 @@ async updateEvent(): Promise<void> {
       { businessType: 'B2C', ticketPrice: parseFloat(this.editEventForm.b2cTicketPrice) || 0, stayFee: parseFloat(this.editEventForm.b2cStayFee) || 0 }
     ];
     formData.append('pricing', JSON.stringify(parsedPricing));
+
+    // Calculate isPaid based on total pricing
+    const totalPrice = (parsedPricing[0].ticketPrice + parsedPricing[0].stayFee + parsedPricing[1].ticketPrice + parsedPricing[1].stayFee);
+    const isPaid = totalPrice > 0;
+    formData.append('isPaid', isPaid.toString());
 
     // Banner Image
     if (this.editEventForm.bannerImage instanceof File) {
@@ -1722,6 +1729,11 @@ async updateEvent(): Promise<void> {
       isValid = false;
     }
 
+    if (!this.validateCapacity()) {
+      this.validationErrors.capacity = 'Capacity is required';
+      isValid = false;
+    }
+
     if (!this.validateSponsors()) {
       isValid = false;
     }
@@ -1757,6 +1769,11 @@ async updateEvent(): Promise<void> {
     }
 
     if (!this.validateMapUrl(true)) {
+      isValid = false;
+    }
+
+    if (!this.validateCapacity(true)) {
+      this.editValidationErrors.capacity = 'Capacity is required';
       isValid = false;
     }
 

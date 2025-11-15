@@ -37,11 +37,12 @@
       <table class="table table-hover align-middle mb-0">
         <thead class="bg-light">
           <tr>
-            <th class="ps-4 py-3">Name</th>
+            <th class="ps-4 py-3">Sr. No.</th>
+            <th class="py-3">Name</th>
             <th class="py-3">Business Name</th>
             <th class="py-3">Business Type</th> <!-- Added Business Type column -->
             <th class="py-3">Mobile</th>
-            <th class="py-3">Email</th>
+            <!-- <th class="py-3">Email</th> -->
             <th class="py-3">Specializations</th>
             <th class="py-3">Services</th>
             <th class="py-3">Regions</th>
@@ -51,6 +52,9 @@
         <tbody>
           <tr *ngFor="let user of users?.docs | paginate: { id: paginationConfig.id, itemsPerPage: payload.limit, currentPage: payload.page, totalItems: users?.totalDocs }; let i = index" class="border-bottom">
             <td class="ps-4 py-3">
+              <span class="fw-semibold">{{(payload.page - 1) * payload.limit + i + 1}}</span>
+            </td>
+            <td class="py-3">
               <div class="d-flex align-items-center">
                 <div>
                   <div class="fw-bold text-dark">{{ user.name || "Unknown User" }}</div>
@@ -70,12 +74,12 @@
                 {{ user.mobile_number || "N/A" }}
               </span>
             </td>
-            <td class="py-3">
+            <!-- <td class="py-3">
               <span class="d-flex align-items-center">
                 <i class="bi bi-envelope-fill text-muted me-2"></i>
                 {{ user.email || "N/A" }}
               </span>
-            </td>
+            </td> -->
             <td class="py-3">
               <div class="small">
                 <span class="badge bg-primary me-1" *ngFor="let spec of user.dmc_specializations?.slice(0, 2)">{{spec}}</span>

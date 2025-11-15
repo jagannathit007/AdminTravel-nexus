@@ -1,0 +1,378 @@
+<div class="container-fluid">
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+    <div class="card-header bg-gradient-primary d-flex justify-content-between align-items-center py-3">
+      <div class="d-flex align-items-center gap-3">
+        <!-- <button class="btn btn-outline-light btn-sm rounded-pill" (click)="goBack()" title="Go Back">
+          <i class="bi bi-arrow-left me-2"></i>Back
+        </button> -->
+        <h4 class="mb-0 fw-bold" style="color: white !important;">
+          <i class="bi bi-list-check me-2"></i>Registrations for {{eventTitle}}
+        </h4>
+      </div>
+      <button class="btn btn-light btn-sm rounded-circle d-flex align-items-center justify-content-center" 
+              (click)="goBack()" 
+              title="Close"
+              style="width: 32px; height: 32px; padding: 0;">
+        <i class="bi bi-x-lg text-dark"></i>
+      </button>
+    </div>
+    <div class="card-body p-0">
+      <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+        <div class="d-flex w-100 align-items-center gap-2 flex-wrap">
+          <div class="flex-grow-1 me-2" style="min-width: 200px;">
+            <input type="text" class="form-control"
+                  placeholder="Search by name, email, transaction ID..."
+                  [(ngModel)]="searchQuery"
+                  (input)="onSearch()">
+          </div>
+          <div style="min-width: 150px;">
+            <select class="form-select" [(ngModel)]="selectedStatus" (change)="onStatusChange()">
+              <option *ngFor="let option of statusOptions" [value]="option.value">
+                {{option.label}}
+              </option>
+            </select>
+          </div>
+          <div style="min-width: 150px;">
+            <select class="form-select" [(ngModel)]="selectedPaymentStatus" (change)="onPaymentStatusChange()">
+              <option *ngFor="let option of paymentStatusOptions" [value]="option.value">
+                {{option.label}}
+              </option>
+            </select>
+          </div>
+          <div>
+            <ng-select [items]="[10,25,50,100]" (change)="onChange()" [(ngModel)]="registrationsLimit" placeholder="Items per page"></ng-select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="registrationsLoading" class="text-center my-5 py-5">
+      <div class="spinner-grow text-primary" role="status">
+        <span class="visually-hidden">Loading registrations...</span>
+      </div>
+      <p class="text-muted mt-2">Loading registrations...</p>
+    </div>
+
+    <div class="table-responsive" *ngIf="!registrationsLoading && registrations?.data?.registrations?.length > 0">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th class="ps-4 py-3">Serial No.</th>
+            <th class="py-3">User Name</th>
+            <th class="py-3">Email</th>
+            <th class="py-3">Transaction ID</th>
+            <th class="py-3">Payment Date</th>
+            <th class="py-3">Screenshot</th>
+            <th class="py-3">Payment Status</th>
+            <th class="py-3">Registration Status</th>
+            <th class="text-center pe-4 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let reg of registrations.data.registrations | paginate: { itemsPerPage: registrationsLimit, currentPage: registrationsPage, totalItems: registrations.data.total }; let i = index">
+            <td class="ps-4 py-3">{{(registrationsPage - 1) * registrationsLimit + i + 1}}</td>
+            <td class="py-3">
+              <div class="fw-bold text-dark">{{getUserName(reg.userDetails)}}</div>
+            </td>
+            <td class="py-3">{{getUserEmail(reg.userDetails)}}</td>
+            <td class="py-3">
+              <small class="text-muted">{{getTransactionId(reg)}}</small>
+            </td>
+            <td class="py-3">{{getPaymentDate(reg)}}</td>
+            <td class="py-3">
+              <button *ngIf="getScreenshotUrl(reg)" 
+                      class="btn btn-sm btn-outline-info rounded-pill" 
+                      (click)="openPaymentScreenshot(getScreenshotUrl(reg))"
+                      title="View Screenshot">
+                <i class="bi bi-image me-1"></i>Screenshot
+              </button>
+              <span *ngIf="!getScreenshotUrl(reg)" class="text-muted">N/A</span>
+            </td>
+            <td class="py-3">
+              <span class="badge rounded-pill" [ngClass]="getPaymentStatusClass(reg)">
+                {{getPaymentStatusText(reg)}}
+              </span>
+            </td>
+            <td class="py-3">
+              <button class="btn btn-sm rounded-pill"
+                      [ngClass]="getRegistrationStatusToggleClass(getRegistrationStatus(reg))"
+                      (click)="toggleRegistrationStatus(reg)"
+                      [disabled]="registrationsLoading"
+                      title="Click to toggle status">
+                {{getRegistrationStatusText(getRegistrationStatus(reg))}}
+              </button>
+            </td>
+            <td class="text-center pe-4 py-3">
+              <div class="d-flex gap-2 justify-content-center">
+                <button class="btn btn-sm btn-outline-primary rounded-pill" 
+                        (click)="openRegistrationDetailsModal(reg)"
+                        title="View Full Details">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-primary rounded-pill" 
+                        (click)="downloadCard(reg)"
+                        title="Download Event Card">
+                  <i class="bi bi-download"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!registrationsLoading && (!registrations?.data?.registrations || registrations?.data?.registrations?.length === 0)" class="text-center my-5 py-4 px-4">
+      <div class="empty-state">
+        <i class="bi bi-list-ul fs-1 text-muted mb-3"></i>
+        <h5>No Registrations Found</h5>
+        <p class="text-muted">This event has no registrations yet or no registrations match your search criteria.</p>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end p-3 border-top" *ngIf="!registrationsLoading && registrations?.data?.registrations?.length > 0">
+      <pagination-controls (pageChange)="changeRegistrationsPage($event)"></pagination-controls>
+    </div>
+  </div>
+</div>
+
+<!-- Registration Details Modal -->
+<div class="modal fade" id="registrationDetailsModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" role="dialog" aria-labelledby="registrationDetailsModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+      <div class="modal-header bg-gradient-primary text-white">
+        <h5 class="modal-title fw-bold" id="registrationDetailsModalTitle">
+          <i class="bi bi-person-check me-2"></i> Registration Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;" *ngIf="selectedRegistrationDetails">
+        <div class="row g-4">
+          <!-- User Information -->
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-person-circle me-2"></i>User Information</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-3 text-center mb-3 mb-md-0">
+                    <img [src]="getUserImageUrl(selectedRegistrationDetails)" 
+                         [alt]="getUserName(selectedRegistrationDetails.userDetails)"
+                         class="img-fluid rounded-circle border border-3 border-primary"
+                         style="width: 120px; height: 120px; object-fit: cover;"
+                         onerror="this.src='assets/images/placeholder-image.png'">
+                  </div>
+                  <div class="col-md-9">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label text-muted small mb-1">Name</label>
+                        <p class="mb-0 fw-bold">{{getUserName(selectedRegistrationDetails.userDetails)}}</p>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label text-muted small mb-1">Email</label>
+                        <p class="mb-0">{{getUserEmail(selectedRegistrationDetails.userDetails)}}</p>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label text-muted small mb-1">User ID</label>
+                        <p class="mb-0"><code>{{selectedRegistrationDetails.userDetails?._id || 'N/A'}}</code></p>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label text-muted small mb-1">Registration ID</label>
+                        <p class="mb-0"><code>{{selectedRegistrationDetails._id}}</code></p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Event Information -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-calendar-event me-2"></i>Event Information</h6>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Event Title</label>
+                  <p class="mb-0 fw-bold">{{getEventTitle(selectedRegistrationDetails)}}</p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Start Date</label>
+                  <p class="mb-0">{{formatDate(getEventStartDate(selectedRegistrationDetails))}}</p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">End Date</label>
+                  <p class="mb-0">{{formatDate(getEventEndDate(selectedRegistrationDetails))}}</p>
+                </div>
+                <div class="mb-3" *ngIf="selectedRegistrationDetails.eventDetails?.location">
+                  <label class="form-label text-muted small mb-1">Location</label>
+                  <p class="mb-0">{{selectedRegistrationDetails.eventDetails.location}}</p>
+                </div>
+                <div *ngIf="selectedRegistrationDetails.eventDetails?.venue">
+                  <label class="form-label text-muted small mb-1">Venue</label>
+                  <p class="mb-0">{{selectedRegistrationDetails.eventDetails.venue}}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Registration Details -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-clipboard-check me-2"></i>Registration Details</h6>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Status</label>
+                  <p class="mb-0">
+                    <span class="badge rounded-pill" [ngClass]="getRegistrationStatusToggleClass(getRegistrationStatus(selectedRegistrationDetails))">
+                      {{getRegistrationStatusText(getRegistrationStatus(selectedRegistrationDetails))}}
+                    </span>
+                  </p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Ticket Type</label>
+                  <p class="mb-0">
+                    <span class="badge bg-info">{{selectedRegistrationDetails.registrationDetails?.ticketType?.toUpperCase() || 'N/A'}}</span>
+                  </p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Registered At</label>
+                  <p class="mb-0">{{formatDate(selectedRegistrationDetails.registrationDetails?.registeredAt)}}</p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Final Amount</label>
+                  <p class="mb-0 fw-bold text-success fs-5">₹{{selectedRegistrationDetails.registrationDetails?.finalAmount || '0.00'}}</p>
+                </div>
+                <div *ngIf="selectedRegistrationDetails.registrationDetails?.discountAmount">
+                  <label class="form-label text-muted small mb-1">Discount Applied</label>
+                  <p class="mb-0 text-danger">- ₹{{selectedRegistrationDetails.registrationDetails.discountAmount}}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coupon Information -->
+          <div class="col-md-6" *ngIf="selectedRegistrationDetails.registrationDetails?.appliedCoupon">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-ticket-perforated me-2"></i>Coupon Applied</h6>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Coupon Code</label>
+                  <p class="mb-0">
+                    <span class="badge bg-primary fs-6">{{selectedRegistrationDetails.registrationDetails.appliedCoupon.code}}</span>
+                  </p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Coupon Title</label>
+                  <p class="mb-0 fw-bold">{{selectedRegistrationDetails.registrationDetails.appliedCoupon.title}}</p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Discount Type</label>
+                  <p class="mb-0">
+                    <span class="badge bg-info">{{selectedRegistrationDetails.registrationDetails.appliedCoupon.discountType}}</span>
+                  </p>
+                </div>
+                <div>
+                  <label class="form-label text-muted small mb-1">Discount Value</label>
+                  <p class="mb-0 fw-bold text-success">
+                    {{selectedRegistrationDetails.registrationDetails.appliedCoupon.discountType === 'percentage' 
+                      ? selectedRegistrationDetails.registrationDetails.appliedCoupon.discountValue + '%' 
+                      : '₹' + selectedRegistrationDetails.registrationDetails.appliedCoupon.discountValue}}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Information -->
+          <div class="col-md-6" [class.col-12]="!selectedRegistrationDetails.registrationDetails?.appliedCoupon">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-credit-card me-2"></i>Payment Information</h6>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Payment Status</label>
+                  <p class="mb-0">
+                    <span class="badge rounded-pill" [ngClass]="getPaymentStatusClass(selectedRegistrationDetails)">
+                      {{getPaymentStatusText(selectedRegistrationDetails)}}
+                    </span>
+                  </p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Payment Method</label>
+                  <p class="mb-0">
+                    <span class="badge bg-secondary">{{selectedRegistrationDetails.paymentDetails?.paymentMethod?.toUpperCase() || 'N/A'}}</span>
+                  </p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Amount Paid</label>
+                  <p class="mb-0 fw-bold text-success fs-5">₹{{selectedRegistrationDetails.paymentDetails?.amount || '0.00'}}</p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">Transaction ID</label>
+                  <p class="mb-0"><code>{{getTransactionId(selectedRegistrationDetails)}}</code></p>
+                </div>
+                <div class="mb-3" *ngIf="getScreenshotUrl(selectedRegistrationDetails)">
+                  <label class="form-label text-muted small mb-1">Payment Screenshot</label>
+                  <p class="mb-0">
+                    <button class="btn btn-sm btn-outline-info rounded-pill" 
+                            (click)="openPaymentScreenshot(getScreenshotUrl(selectedRegistrationDetails))"
+                            title="View Screenshot">
+                      <i class="bi bi-image me-1"></i>View Screenshot
+                    </button>
+                  </p>
+                </div>
+                <div *ngIf="selectedRegistrationDetails.paymentDetails?._id">
+                  <label class="form-label text-muted small mb-1">Payment ID</label>
+                  <p class="mb-0"><code>{{selectedRegistrationDetails.paymentDetails._id}}</code></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Close
+        </button>
+        <button type="button" class="btn btn-primary rounded-pill" 
+                (click)="downloadCard(selectedRegistrationDetails)">
+          <i class="bi bi-download me-1"></i>Download Card
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Screenshot Modal -->
+<div class="modal fade" id="paymentScreenshotModal" tabindex="-1" role="dialog" aria-labelledby="paymentScreenshotModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+    <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="paymentScreenshotModalTitle">
+          <i class="bi bi-image me-2"></i>Payment Screenshot
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0 text-center" *ngIf="selectedPaymentScreenshot">
+        <img [src]="selectedPaymentScreenshot" 
+             alt="Payment Screenshot"
+             class="img-fluid w-100"
+             style="max-height: 70vh; object-fit: contain; background: #f8f9fa;">
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

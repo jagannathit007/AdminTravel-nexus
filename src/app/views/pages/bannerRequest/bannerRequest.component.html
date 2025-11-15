@@ -50,7 +50,8 @@
                        [src]="getImageUrl(banner.image)" 
                        alt="Banner Image"
                        class="banner-thumbnail rounded shadow-sm"
-                       style="width: 80px; height: 60px; object-fit: cover;">
+                       style="width: 80px; height: 60px; object-fit: cover;"
+                       (error)="onImageError($event)">
                   <div *ngIf="!banner.image" 
                        class="bg-gradient-primary rounded d-flex align-items-center justify-content-center shadow-sm"
                        style="width: 80px; height: 60px; color: white;">
@@ -174,7 +175,8 @@
               <img [src]="getImageUrl(selectedBannerForPreview.image)" 
                    [alt]="selectedBannerForPreview.title"
                    class="img-fluid w-100"
-                   style="max-height: 500px; object-fit: contain; background: #f8f9fa;">
+                   style="max-height: 500px; object-fit: contain; background: #f8f9fa;"
+                   (error)="onImageError($event)">
               <div class="position-absolute top-0 end-0 m-2">
                 <span class="badge rounded-pill" 
                       [ngClass]="getStatusClass(selectedBannerForPreview.status)">
@@ -296,7 +298,8 @@
         <img [src]="getImageUrl(selectedPaymentScreenshot)" 
              alt="Payment Screenshot"
              class="img-fluid w-100"
-             style="max-height: 70vh; object-fit: contain; background: #f8f9fa;">
+             style="max-height: 70vh; object-fit: contain; background: #f8f9fa;"
+             (error)="onImageError($event)">
       </div>
       <div class="modal-footer bg-light">
         <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">

@@ -439,4 +439,8 @@ export class BannersComponent implements OnInit, AfterViewInit {
     const baseUrl = this.imageurl; // Change this to your API base URL
     return imagePath.startsWith('http') ? imagePath : baseUrl + imagePath;
   }
+
+  onImageError(event: any): void {
+    event.target.src = 'assets/images/placeholder-image.png';
+  }
 }

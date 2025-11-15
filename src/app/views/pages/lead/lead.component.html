@@ -1,0 +1,388 @@
+<div class="container-fluid">
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+    <div class="card-header bg-gradient-primary d-flex justify-content-between align-items-center py-3">
+      <h4 class="mb-0 fw-bold text-white">
+        <i class="bi bi-briefcase me-2"></i>Travel Lead Management
+      </h4>
+    </div>
+    <div class="card-body p-0">
+      <div class="p-3 border-bottom">
+        <!-- Search -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-8">
+            <label class="form-label small text-muted">Search</label>
+            <div class="input-group">
+              <input type="text" 
+                     class="form-control" 
+                     placeholder="Search by customer name, mobile, email, package details, created by..."
+                     [(ngModel)]="searchQuery"
+                     (input)="onSearch()">
+              <button class="btn btn-outline-secondary" 
+                      type="button" 
+                      (click)="resetSearch()"
+                      *ngIf="searchQuery">
+                <i class="bi bi-x-circle"></i> Clear
+              </button>
+            </div>
+            <small class="text-muted">Search across customer details, package information, and creator details</small>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small text-muted">Items per page</label>
+            <select class="form-select" 
+                    [(ngModel)]="payload.limit" 
+                    (change)="onLimitChange()">
+              <option [value]="25">25</option>
+              <option [value]="50">50</option>
+              <option [value]="100">100</option>
+              <option [value]="200">200</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+     
+    <div *ngIf="loading" class="text-center my-5 py-5">
+      <div class="spinner-grow text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading && leads?.docs && leads.docs.length > 0">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th class="ps-4 py-3">Customer</th>
+            <th class="py-3">Created By</th>
+            <th class="py-3">Region</th>
+            <th class="py-3">Budget</th>
+            <th class="py-3">Package Details</th>
+            <th class="py-3">Status</th>
+            <th class="py-3">Assignments</th>
+            <th class="py-3">Created At</th>
+            <th class="text-end pe-4 py-3">Action</th>
+          </tr>
+        </thead>
+        
+        <tbody>
+          <tr *ngFor="let lead of leads.docs | paginate: { itemsPerPage: payload.limit, currentPage: payload.page, totalItems: leads.totalDocs }; let i=index" class="border-bottom">
+            <td class="ps-4 py-3">
+              <div class="fw-bold text-dark">{{lead.customerName || 'N/A'}}</div>
+              <small class="text-muted d-block">
+                <i class="bi bi-telephone me-1"></i>{{lead.customerMobile || 'N/A'}}
+              </small>
+              <small class="text-muted d-block" *ngIf="lead.customerEmail">
+                <i class="bi bi-envelope me-1"></i>{{lead.customerEmail}}
+              </small>
+            </td>
+            <td class="py-3">
+              <div class="fw-bold text-dark">{{getUserDisplayName(lead.createdBy)}}</div>
+              <small class="text-muted" *ngIf="lead.createdBy?.email">{{lead.createdBy.email}}</small>
+              <div class="text-muted small" *ngIf="lead.createdBy?.mobile_number">
+                <i class="bi bi-telephone me-1"></i>{{lead.createdBy.mobile_number}}
+              </div>
+              <div class="text-muted small" *ngIf="lead.createdBy?.business_name">
+                <i class="bi bi-building me-1"></i>{{lead.createdBy.business_name}}
+              </div>
+            </td>
+            <td class="py-3">
+              <span class="badge bg-info">{{lead.region?.name || 'N/A'}}</span>
+              <div class="text-muted small mt-1" *ngIf="lead.region?.code">{{lead.region.code}}</div>
+            </td>
+            <td class="py-3">
+              <div class="fw-bold text-success">
+                {{formatCurrency(lead.budget)}}
+              </div>
+            </td>
+            <td class="py-3">
+              <div class="small" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{lead.packageDetails || 'No details'}}
+              </div>
+            </td>
+            <td class="py-3">
+              <span class="badge rounded-pill" [ngClass]="getStatusClass(lead.status)">
+                {{getStatusLabel(lead.status)}}
+              </span>
+            </td>
+            <td class="py-3">
+              <span class="badge bg-info rounded-pill">
+                {{lead.assignedTo?.length || 0}} {{(lead.assignedTo?.length || 0) === 1 ? 'DMC' : 'DMCs'}}
+              </span>
+              <div class="small text-muted mt-1" *ngIf="lead.assignedTo && lead.assignedTo.length > 0">
+                Accepted: {{getAcceptedCount(lead.assignedTo)}}
+              </div>
+            </td>
+            <td class="py-3">
+              <div class="small">{{formatDate(lead.createdAt)}}</div>
+            </td>
+            <td class="text-end pe-4 py-3">
+              <button class="btn btn-sm btn-outline-primary rounded-pill" 
+                      (click)="openLeadDetail(lead)"
+                      [disabled]="detailLoading">
+                <i class="bi bi-eye me-1"></i>View
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div class="d-flex justify-content-between align-items-center p-3">
+        <div class="text-muted small">
+          Showing {{ (payload.page - 1) * payload.limit + 1 }} to 
+          {{ Math.min(payload.page * payload.limit, leads.totalDocs) }} 
+          of {{ leads.totalDocs }} entries
+        </div>
+        <pagination-controls (pageChange)="onPageChange($event)"></pagination-controls>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && (!leads?.docs || leads.docs.length === 0)" class="text-center my-5 py-4 px-4">
+      <div class="empty-state">
+        <i class="bi bi-briefcase fs-1 text-muted mb-3"></i>
+        <h5>No Leads Found</h5>
+        <p class="text-muted">Try adjusting your search query.</p>
+        <button class="btn btn-outline-primary rounded-pill mt-3" (click)="resetSearch()">
+          <i class="bi bi-arrow-repeat me-2"></i>Clear Search
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lead Detail Modal -->
+<div class="modal fade" id="leadDetailModal" tabindex="-1" role="dialog" aria-labelledby="leadDetailModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+    <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="leadDetailModalTitle">
+          <i class="bi bi-briefcase me-2"></i>Lead Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" *ngIf="selectedLead">
+        <div *ngIf="detailLoading" class="text-center py-5">
+          <div class="spinner-grow text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+
+        <div *ngIf="!detailLoading">
+          <div class="row mb-4">
+            <div class="col-md-8">
+              <h4 class="fw-bold text-dark mb-2">Customer: {{selectedLead.customerName || 'N/A'}}</h4>
+              <p class="text-muted mb-3" *ngIf="selectedLead.packageDetails">{{selectedLead.packageDetails}}</p>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge rounded-pill" [ngClass]="getStatusClass(selectedLead.status)">
+                  {{getStatusLabel(selectedLead.status)}}
+                </span>
+                <span class="badge bg-info">{{selectedLead.region?.name || 'N/A'}}</span>
+                <span class="badge bg-success">{{formatCurrency(selectedLead.budget)}}</span>
+              </div>
+            </div>
+            <div class="col-md-4 text-end">
+              <small class="text-muted">Created: {{formatDateTime(selectedLead.createdAt)}}</small>
+            </div>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                  <h6 class="card-title text-primary mb-3">
+                    <i class="bi bi-person me-2"></i>Customer Information
+                  </h6>
+                  <div class="mb-2">
+                    <strong>Name:</strong> {{selectedLead.customerName || 'N/A'}}
+                  </div>
+                  <div class="mb-2">
+                    <strong>Mobile:</strong> 
+                    <a [href]="'tel:' + selectedLead.customerMobile" class="text-decoration-none">
+                      {{selectedLead.customerMobile || 'N/A'}}
+                    </a>
+                  </div>
+                  <div class="mb-2">
+                    <strong>Email:</strong> 
+                    <a [href]="selectedLead.customerEmail ? 'mailto:' + selectedLead.customerEmail : '#'" class="text-decoration-none">
+                      {{selectedLead.customerEmail || 'N/A'}}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                  <h6 class="card-title text-primary mb-3">
+                    <i class="bi bi-person-badge me-2"></i>Created By
+                  </h6>
+                  <div class="d-flex align-items-center mb-3" *ngIf="selectedLead.createdBy">
+                    <div *ngIf="selectedLead.createdBy.profilePic" class="me-3">
+                      <img [src]="getImageUrl(selectedLead.createdBy.profilePic)" 
+                           alt="Profile"
+                           class="rounded-circle"
+                           style="width: 50px; height: 50px; object-fit: cover;"
+                           (error)="onImageError($event)">
+                    </div>
+                    <div *ngIf="!selectedLead.createdBy.profilePic" class="me-3">
+                      <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white"
+                           style="width: 50px; height: 50px;">
+                        <i class="bi bi-person"></i>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="fw-bold">{{getUserDisplayName(selectedLead.createdBy)}}</div>
+                      <div class="text-muted small" *ngIf="selectedLead.createdBy.email">{{selectedLead.createdBy.email}}</div>
+                      <div class="text-muted small" *ngIf="selectedLead.createdBy.mobile_number">
+                        <i class="bi bi-telephone me-1"></i>{{selectedLead.createdBy.mobile_number}}
+                      </div>
+                      <div class="text-muted small" *ngIf="selectedLead.createdBy.business_name">
+                        <i class="bi bi-building me-1"></i>{{selectedLead.createdBy.business_name}}
+                      </div>
+                      <div class="text-muted small" *ngIf="selectedLead.createdBy.city || selectedLead.createdBy.state">
+                        <i class="bi bi-geo-alt me-1"></i>{{selectedLead.createdBy.city}}{{selectedLead.createdBy.city && selectedLead.createdBy.state ? ', ' : ''}}{{selectedLead.createdBy.state}}
+                      </div>
+                    </div>
+                  </div>
+                  <div *ngIf="selectedLead.createdBy?.regions && selectedLead.createdBy.regions.length > 0" class="mt-2">
+                    <strong class="small">Regions:</strong>
+                    <div class="mt-1">
+                      <span class="badge bg-secondary me-1" *ngFor="let region of selectedLead.createdBy.regions">
+                        {{region.name}}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                  <h6 class="card-title text-primary mb-3">
+                    <i class="bi bi-map me-2"></i>Region & Budget
+                  </h6>
+                  <div class="mb-2">
+                    <strong>Region:</strong> {{selectedLead.region?.name || 'N/A'}}
+                    <span class="badge bg-info ms-2" *ngIf="selectedLead.region?.code">{{selectedLead.region.code}}</span>
+                  </div>
+                  <div class="mb-2" *ngIf="hasCountries(selectedLead)">
+                    <strong>Countries:</strong>
+                    <div class="mt-1">
+                      <span class="badge bg-secondary me-1" *ngFor="let country of getCountries(selectedLead)">
+                        {{country}}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="mb-2" *ngIf="selectedLead.region?.description">
+                    <strong>Description:</strong>
+                    <p class="small text-muted mb-0">{{selectedLead.region.description}}</p>
+                  </div>
+                  <div class="mt-3 pt-3 border-top">
+                    <strong>Budget:</strong>
+                    <div class="fw-bold text-success fs-5">{{formatCurrency(selectedLead.budget)}}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                  <h6 class="card-title text-primary mb-3">
+                    <i class="bi bi-file-text me-2"></i>Package Details
+                  </h6>
+                  <p class="text-muted" *ngIf="selectedLead.packageDetails">{{selectedLead.packageDetails}}</p>
+                  <p class="text-muted" *ngIf="!selectedLead.packageDetails">No package details provided</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assignments Section -->
+          <div class="card border-0 shadow-sm mb-3" *ngIf="selectedLead.assignedTo && selectedLead.assignedTo.length > 0">
+            <div class="card-body">
+              <h6 class="card-title text-primary mb-3">
+                <i class="bi bi-people me-2"></i>DMC Assignments ({{selectedLead.assignedTo.length}})
+              </h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                  <thead>
+                    <tr>
+                      <th>DMC</th>
+                      <th>Contact</th>
+                      <th>Status</th>
+                      <th>Assigned At</th>
+                      <th>Accepted At</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let assignment of selectedLead.assignedTo">
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <div *ngIf="assignment.userId?.profilePic" class="me-2">
+                            <img [src]="getImageUrl(assignment.userId?.profilePic || '')" 
+                                 alt="Profile"
+                                 class="rounded-circle"
+                                 style="width: 35px; height: 35px; object-fit: cover;"
+                                 (error)="onImageError($event)">
+                          </div>
+                          <div *ngIf="!assignment.userId?.profilePic" class="me-2">
+                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white"
+                                 style="width: 35px; height: 35px; font-size: 12px;">
+                              <i class="bi bi-person"></i>
+                            </div>
+                          </div>
+                          <div>
+                            <div class="fw-bold">{{getUserDisplayName(assignment.userId)}}</div>
+                            <small class="text-muted" *ngIf="assignment.userId?.business_name">
+                              {{assignment.userId.business_name}}
+                            </small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <small class="d-block" *ngIf="assignment.userId?.email">{{assignment.userId.email}}</small>
+                        <small class="d-block" *ngIf="assignment.userId?.mobile_number">
+                          <i class="bi bi-telephone me-1"></i>{{assignment.userId.mobile_number}}
+                        </small>
+                      </td>
+                      <td>
+                        <span class="badge rounded-pill" [ngClass]="getAssignmentStatusClass(assignment.status)">
+                          {{getStatusLabel(assignment.status)}}
+                        </span>
+                      </td>
+                      <td>
+                        <small class="text-muted">{{formatDateTime(assignment.assignedAt)}}</small>
+                      </td>
+                      <td>
+                        <small class="text-muted" *ngIf="assignment.acceptedAt">{{formatDateTime(assignment.acceptedAt)}}</small>
+                        <small class="text-muted" *ngIf="!assignment.acceptedAt">-</small>
+                      </td>
+                      <td>
+                        <small class="text-muted" *ngIf="assignment.notes">{{assignment.notes}}</small>
+                        <small class="text-muted" *ngIf="!assignment.notes">-</small>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-info" *ngIf="!selectedLead.assignedTo || selectedLead.assignedTo.length === 0">
+            <i class="bi bi-info-circle me-2"></i>No DMC assignments for this lead yet.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

@@ -39,6 +39,7 @@ import { FeesComponent } from './views/pages/feesRecord/fees.component';
 import { BadgesComponent } from './views/pages/badges/badges.component';
 import { BadgeManagementComponent } from './views/pages/usersbadge/usersbadge.component';
 import { AskManagementComponent } from './views/pages/ask/ask.component';
+import { LeadManagementComponent } from './views/pages/lead/lead.component';
 import { PodcastsComponent } from './views/pages/podcast/podcast.comonent';
 import { OtpRecordsComponent } from './views/pages/otp/otp.component';
 import { BookingsComponent } from './views/pages/podcastBooking/podcastBooking.component';
@@ -58,6 +59,7 @@ import { AdminFeedbackComponent } from './views/pages/admin-feedback/admin-feedb
 import { NewUserRegistrationComponent } from './views/pages/new-user-registration/new-user-registration.component';
 import { NewEventsComponent } from './views/pages/new-events/new-events.component';
 import {EventPaymentsComponent} from './views/pages/paymentStatus/payment.component';
+import { EventRegistrationListComponent } from './views/pages/event-registration-list/event-registration-list.component';
 import { BannerRequestsComponent } from './views/pages/bannerRequest/bannerRequest.component';
 import { CouponMasterComponent } from './views/pages/couponMaster/coupon-master.component';
 
@@ -119,6 +121,7 @@ export const routes: Routes = [
 
       { path: 'finance', component: FinanceComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
 {path:'payment', component: EventPaymentsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+{path:'event-registration-list', component: EventRegistrationListComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
 
       {path:'complaint', component: AdminComplaintComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       {path:'feedback', component: AdminFeedbackComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
@@ -129,6 +132,7 @@ export const routes: Routes = [
 {path:'analytics', component: AnalyticsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
 
       { path: 'askManagement', component: AskManagementComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'leadManagement', component: LeadManagementComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       { path: 'podcasts', component: PodcastsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       { path: 'LTPoints', component: LTPointsComponent, canActivate: [RoleGuard], data: { roles: ['LT', 'admin'] } },
       { path: 'finance', component: FinanceComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },

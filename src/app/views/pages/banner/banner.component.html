@@ -53,7 +53,8 @@
                        [src]="getImageUrl(banner.image)" 
                        alt="Banner Image"
                        class="banner-thumbnail rounded shadow-sm"
-                       style="width: 60px; height: 40px; object-fit: cover;">
+                       style="width: 60px; height: 40px; object-fit: cover;"
+                       (error)="onImageError($event)">
                   <div *ngIf="!banner.image" 
                        class="bg-gradient-primary rounded d-flex align-items-center justify-content-center shadow-sm"
                        style="width: 60px; height: 40px; color: white;">
@@ -159,7 +160,8 @@
               <img [src]="getImageUrl(selectedBannerForPreview.image)" 
                    [alt]="selectedBannerForPreview.title"
                    class="img-fluid w-100"
-                   style="max-height: 500px; object-fit: contain; background: #f8f9fa;">
+                   style="max-height: 500px; object-fit: contain; background: #f8f9fa;"
+                   (error)="onImageError($event)">
               <div class="position-absolute top-0 end-0 m-2">
                 <span class="badge rounded-pill" 
                       [ngClass]="selectedBannerForPreview.isActive ? 'bg-success' : 'bg-danger'">
@@ -326,7 +328,7 @@
           <div *ngIf="imagePreview" class="mb-3">
             <label class="form-label">Image Preview:</label>
             <div class="border rounded p-2">
-              <img [src]="imagePreview" alt="Preview" class="img-thumbnail" style="max-height: 200px;">
+              <img [src]="imagePreview" alt="Preview" class="img-thumbnail" style="max-height: 200px;" (error)="onImageError($event)">
             </div>
           </div>
         </form>
