@@ -6884,6 +6884,14 @@ export interface TravelLead {
     acceptedAt?: string;
     notes?: string;
   }>;
+  adminApproval?: {
+    status: 'pending' | 'approved' | 'rejected';
+    approvedAt?: string;
+    rejectedAt?: string;
+    approvedBy?: string;
+    rejectedBy?: string;
+    rejectionReason?: string;
+  };
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -7034,6 +7042,53 @@ export class TravelLeadService {
     } catch (error) {
       console.error('API Error:', error);
       swalHelper.showToast('Failed to fetch lead details', 'error');
+      throw error;
+    }
+  }
+
+  async approveLead(leadId: string, adminNotes?: string): Promise<any> {
+    try {
+      this.getHeaders();
+      
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.APPROVE_LEAD,
+          method: 'POST',
+        },
+        { 
+          leadId,
+          action: 'approve', // Always approve as per backend requirement
+          rejectionReason: '',
+          adminNotes: adminNotes || ''
+        },
+        this.headers
+      );
+
+      return response;
+    } catch (error) {
+      console.error('API Error:', error);
+      swalHelper.showToast('Failed to approve lead', 'error');
+      throw error;
+    }
+  }
+
+  async rejectLead(leadId: string, rejectionReason?: string): Promise<any> {
+    try {
+      this.getHeaders();
+      
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.REJECT_LEAD,
+          method: 'POST',
+        },
+        { leadId, rejectionReason },
+        this.headers
+      );
+
+      return response;
+    } catch (error) {
+      console.error('API Error:', error);
+      swalHelper.showToast('Failed to reject lead', 'error');
       throw error;
     }
   }

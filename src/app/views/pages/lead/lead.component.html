@@ -57,9 +57,9 @@
             <th class="py-3">Region</th>
             <th class="py-3">Budget</th>
             <th class="py-3">Package Details</th>
-            <!-- <th class="py-3">Status</th> -->
-            <th class="py-3">Assignments</th>
+            <th class="py-3">Status</th>
             <th class="py-3">Created At</th>
+            <th class="py-3 text-center">Approve</th>
             <th class="text-end pe-4 py-3">Action</th>
           </tr>
         </thead>
@@ -102,22 +102,24 @@
                 {{lead.packageDetails || 'No details'}}
               </div>
             </td>
-            <!-- <td class="py-3">
-              <span class="badge rounded-pill" [ngClass]="getStatusClass(lead.status)">
-                {{getStatusLabel(lead.status)}}
-              </span>
-            </td> -->
-
             <td class="py-3">
-              <span class="badge bg-info rounded-pill">
-                {{lead.assignedTo?.length || 0}} {{(lead.assignedTo?.length || 0) === 1 ? 'DMC' : 'DMCs'}}
+              <span class="badge rounded-pill" [ngClass]="getAdminApprovalStatusClass(getAdminApprovalStatus(lead))">
+                {{getAdminApprovalStatusLabel(getAdminApprovalStatus(lead))}}
               </span>
-              <!-- <div class="small text-muted mt-1" *ngIf="lead.assignedTo && lead.assignedTo.length > 0">
-                Accepted: {{getAcceptedCount(lead.assignedTo)}}
-              </div> -->
             </td>
             <td class="py-3">
               <div class="small">{{formatDate(lead.createdAt)}}</div>
+            </td>
+            <td class="py-3 text-center">
+              <button class="btn btn-sm btn-success p-2" 
+                      (click)="approveLead(lead)"
+                      [disabled]="!canApprove(lead) || isApproved(lead)"
+                      *ngIf="canApprove(lead) || isApproved(lead)"
+                      [title]="isApproved(lead) ? 'Lead already approved' : 'Approve Lead'"
+                      style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px;">
+                <i class="bi bi-check-lg" *ngIf="!isApproved(lead)"></i>
+                <i class="bi bi-check-circle-fill" *ngIf="isApproved(lead)"></i>
+              </button>
             </td>
             <td class="text-end pe-4 py-3">
               <button class="btn btn-sm btn-outline-primary rounded-pill" 
@@ -176,6 +178,9 @@
               <h4 class="fw-bold text-dark mb-2">Customer: {{selectedLead.customerName || 'N/A'}}</h4>
               <p class="text-muted mb-3" *ngIf="selectedLead.packageDetails">{{selectedLead.packageDetails}}</p>
               <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge rounded-pill" [ngClass]="getAdminApprovalStatusClass(getAdminApprovalStatus(selectedLead))">
+                  Approval: {{getAdminApprovalStatusLabel(getAdminApprovalStatus(selectedLead))}}
+                </span>
                 <span class="badge rounded-pill" [ngClass]="getStatusClass(selectedLead.status)">
                   {{getStatusLabel(selectedLead.status)}}
                 </span>
@@ -380,9 +385,45 @@
           <div class="alert alert-info" *ngIf="!selectedLead.assignedTo || selectedLead.assignedTo.length === 0">
             <i class="bi bi-info-circle me-2"></i>No DMC assignments for this lead yet.
           </div>
+
+          <!-- Admin Approval Section -->
+          <div class="card border-0 shadow-sm mb-3" *ngIf="selectedLead.adminApproval">
+            <div class="card-body">
+              <h6 class="card-title text-primary mb-3">
+                <i class="bi bi-shield-check me-2"></i>Admin Approval Status
+              </h6>
+              <div class="mb-2">
+                <strong>Status:</strong>
+                <span class="badge rounded-pill ms-2" [ngClass]="getAdminApprovalStatusClass(selectedLead.adminApproval.status)">
+                  {{getAdminApprovalStatusLabel(selectedLead.adminApproval.status)}}
+                </span>
+              </div>
+              <div class="mb-2" *ngIf="selectedLead.adminApproval.approvedAt">
+                <strong>Approved At:</strong> {{formatDateTime(selectedLead.adminApproval.approvedAt)}}
+              </div>
+              <div class="mb-2" *ngIf="selectedLead.adminApproval.rejectedAt">
+                <strong>Rejected At:</strong> {{formatDateTime(selectedLead.adminApproval.rejectedAt)}}
+              </div>
+              <div class="mb-2" *ngIf="selectedLead.adminApproval.rejectionReason">
+                <strong>Rejection Reason:</strong>
+                <p class="text-muted mb-0 mt-1">{{selectedLead.adminApproval.rejectionReason}}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="modal-footer bg-light">
+      <div class="modal-footer bg-light" *ngIf="selectedLead">
+        <div class="d-flex gap-2">
+          <button type="button" 
+                  class="btn btn-success p-2" 
+                  (click)="approveLead(selectedLead)"
+                  [disabled]="!canApprove(selectedLead) || isApproved(selectedLead)"
+                  [title]="isApproved(selectedLead) ? 'Lead already approved' : 'Approve Lead'"
+                  style="width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px;">
+            <i class="bi bi-check-lg" *ngIf="!isApproved(selectedLead)"></i>
+            <i class="bi bi-check-circle-fill" *ngIf="isApproved(selectedLead)"></i>
+          </button>
+        </div>
         <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">
           <i class="bi bi-x-circle me-1"></i>Close
         </button>

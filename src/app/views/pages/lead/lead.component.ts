@@ -6,6 +6,7 @@ import { TravelLeadService, TravelLead, TravelLeadResponse, TravelLeadDetailResp
 import { swalHelper } from '../../../core/constants/swal-helper';
 import { debounceTime, Subject } from 'rxjs';
 import { environment } from 'src/env/env.local';
+import Swal from 'sweetalert2';
 declare var bootstrap: any;
 declare var $: any;
 
@@ -263,6 +264,147 @@ export class LeadManagementComponent implements OnInit, AfterViewInit {
   getCountries(lead: TravelLead | null): string[] {
     if (!lead || !lead.region || !lead.region.countries) return [];
     return lead.region.countries;
+  }
+
+  getAdminApprovalStatus(lead: TravelLead): string {
+    if (!lead.adminApproval) return 'pending';
+    return lead.adminApproval.status || 'pending';
+  }
+
+  getAdminApprovalStatusClass(status: string): string {
+    switch (status) {
+      case 'approved':
+        return 'bg-success';
+      case 'rejected':
+        return 'bg-danger';
+      case 'pending':
+        return 'bg-warning';
+      default:
+        return 'bg-secondary';
+    }
+  }
+
+  getAdminApprovalStatusLabel(status: string): string {
+    if (!status) return 'Pending';
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  isApproved(lead: TravelLead): boolean {
+    return lead.adminApproval?.status === 'approved';
+  }
+
+  isRejected(lead: TravelLead): boolean {
+    return lead.adminApproval?.status === 'rejected';
+  }
+
+  canApprove(lead: TravelLead): boolean {
+    return !lead.adminApproval || lead.adminApproval.status === 'pending';
+  }
+
+  canReject(lead: TravelLead): boolean {
+    return !lead.adminApproval || lead.adminApproval.status === 'pending';
+  }
+
+  async approveLead(lead: TravelLead): Promise<void> {
+    const result = await swalHelper.confirmation(
+      'Approve Lead',
+      `Are you sure you want to approve this lead for ${lead.customerName}?`,
+      'question'
+    );
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      const response = await this.travelLeadService.approveLead(lead._id);
+      console.log('Approve lead response:', response); // Debug log
+      
+      // Check for success - handle both status === 1 and success === true
+      const isSuccess = (response && (response.status === 1 || response.success === true || (response.data && response.data.status === 1)));
+      
+      if (isSuccess) {
+        swalHelper.showToast('Lead approved successfully', 'success');
+        // Refresh the leads list
+        await this.fetchLeads();
+        this.cdr.detectChanges();
+        // If modal is open, refresh the selected lead
+        if (this.selectedLead && this.selectedLead._id === lead._id) {
+          await this.openLeadDetail(lead);
+          this.cdr.detectChanges();
+        }
+      } else {
+        const errorMessage = response?.message || response?.data?.message || 'Failed to approve lead';
+        console.error('Approve lead failed:', response);
+        swalHelper.showToast(errorMessage, 'error');
+      }
+    } catch (error: any) {
+      console.error('Error approving lead:', error);
+      // Check if error has response data (might be a successful response wrapped in error)
+      if (error?.error && (error.error.status === 1 || error.error.success === true)) {
+        swalHelper.showToast('Lead approved successfully', 'success');
+        await this.fetchLeads();
+        this.cdr.detectChanges();
+        if (this.selectedLead && this.selectedLead._id === lead._id) {
+          await this.openLeadDetail(lead);
+          this.cdr.detectChanges();
+        }
+      } else {
+        const errorMessage = error?.error?.message || error?.message || 'Failed to approve lead';
+        swalHelper.showToast(errorMessage, 'error');
+      }
+    }
+  }
+
+  async rejectLead(lead: TravelLead): Promise<void> {
+    const { value: rejectionReason } = await Swal.fire({
+      title: 'Reject Lead',
+      text: 'Please provide a reason for rejecting this lead (optional):',
+      input: 'textarea',
+      inputPlaceholder: 'Enter rejection reason...',
+      inputAttributes: {
+        'aria-label': 'Rejection reason'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Continue',
+      cancelButtonText: 'Cancel',
+      inputValidator: (value: string) => {
+        // Optional field, so no validation needed
+        return null;
+      }
+    });
+
+    if (rejectionReason === undefined) {
+      return; // User cancelled
+    }
+
+    const result = await swalHelper.confirmation(
+      'Reject Lead',
+      `Are you sure you want to reject this lead for ${lead.customerName}?`,
+      'warning'
+    );
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      const response = await this.travelLeadService.rejectLead(lead._id, rejectionReason || undefined);
+      if (response && response.status === 1) {
+        swalHelper.showToast('Lead rejected successfully', 'success');
+        // Refresh the leads list
+        await this.fetchLeads();
+        // If modal is open, refresh the selected lead
+        if (this.selectedLead && this.selectedLead._id === lead._id) {
+          await this.openLeadDetail(lead);
+        }
+      } else {
+        swalHelper.showToast(response?.message || 'Failed to reject lead', 'error');
+      }
+    } catch (error) {
+      console.error('Error rejecting lead:', error);
+      swalHelper.showToast('Failed to reject lead', 'error');
+    }
   }
 }
 

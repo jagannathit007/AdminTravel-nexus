@@ -246,6 +246,9 @@ public DELETE_REGION= `${this.PATH}/deleteRegion`
   // Travel Lead Management
   public GET_ALL_LEADS = `${this.PATH1}/mobile/getAllLeads`;
   public GET_LEAD_DETAIL = `${this.PATH1}/mobile/getLeadDetail`;
+  public APPROVE_LEAD = `${this.PATH1}/mobile/approveLeadByAdmin`;
+  public REJECT_LEAD = `${this.PATH1}/admin/rejectLead`;
+
 
   // Coupon Management
   public CREATE_COUPON = `${this.PATH1}/admin/createCoupon`;
