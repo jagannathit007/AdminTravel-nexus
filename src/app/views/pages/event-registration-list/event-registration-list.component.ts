@@ -356,8 +356,35 @@ export class EventRegistrationListComponent implements OnInit, AfterViewInit {
     if (!userDetails || !userDetails.profilePic) {
       return '';
     }
-    const imagePath = userDetails.profilePic.replace(/\\/g, '/');
-    return imagePath.startsWith('http') ? imagePath : `${environment.imageUrl}${imagePath}`;
+    return this.buildImageUrl(userDetails.profilePic);
+  }
+
+  private buildImageUrl(imagePath: string | null | undefined): string {
+    if (!imagePath) {
+      return '';
+    }
+    
+    // If already a full URL, return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    
+    // Normalize path separators (Windows backslashes to forward slashes)
+    let normalizedPath = imagePath.replace(/\\/g, '/');
+    
+    // Remove leading slash if present (to avoid double slashes)
+    if (normalizedPath.startsWith('/')) {
+      normalizedPath = normalizedPath.substring(1);
+    }
+    
+    // Ensure environment.imageUrl has trailing slash
+    const baseUrl = environment.imageUrl.endsWith('/') 
+      ? environment.imageUrl 
+      : `${environment.imageUrl}/`;
+    
+    const fullUrl = `${baseUrl}${normalizedPath}`;
+    console.log('Built image URL:', fullUrl);
+    return fullUrl;
   }
 
   getUserNameForCard(reg: any): string {
@@ -403,6 +430,20 @@ export class EventRegistrationListComponent implements OnInit, AfterViewInit {
 
   async downloadCard(registration: any): Promise<void> {
     try {
+      // Get sponsors from event details
+      const sponsors = registration.eventDetails?.sponsors || [];
+      const sponsorLogos: string[] = [];
+      
+      // Extract sponsor logo URLs
+      for (const sponsor of sponsors) {
+        if (sponsor.logo) {
+          const logoUrl = this.buildImageUrl(sponsor.logo);
+          if (logoUrl) {
+            sponsorLogos.push(logoUrl);
+          }
+        }
+      }
+
       // Prepare card data
       const cardData = {
         userName: this.getUserNameForCard(registration),
@@ -410,17 +451,29 @@ export class EventRegistrationListComponent implements OnInit, AfterViewInit {
         eventTitle: this.getEventTitle(registration),
         eventStartDate: this.getEventStartDate(registration),
         eventEndDate: this.getEventEndDate(registration),
-        cardId: this.getCardId(registration)
+        eventLocation: registration.eventDetails?.location || '',
+        eventVenue: registration.eventDetails?.venue || '',
+        cardId: this.getCardId(registration),
+        sponsorLogos: sponsorLogos,
+        travelNexusLogo: '/assets/images/download.png'
       };
 
       // Create card HTML element
       const cardElement = this.createCardElement(cardData);
       document.body.appendChild(cardElement);
 
-      // Wait for image to load if exists
+      // Wait for all images to load
+      const imagePromises: Promise<void>[] = [];
       if (cardData.userImage) {
-        await this.waitForImageLoad(cardData.userImage);
+        imagePromises.push(this.waitForImageLoad(cardData.userImage));
       }
+      if (cardData.travelNexusLogo) {
+        imagePromises.push(this.waitForImageLoad(cardData.travelNexusLogo));
+      }
+      cardData.sponsorLogos.forEach(logo => {
+        imagePromises.push(this.waitForImageLoad(logo));
+      });
+      await Promise.all(imagePromises);
 
       // Generate canvas from card element
       const canvas = await html2canvas(cardElement, {
@@ -455,163 +508,124 @@ export class EventRegistrationListComponent implements OnInit, AfterViewInit {
   private createCardElement(cardData: any): HTMLElement {
     const cardDiv = document.createElement('div');
     cardDiv.id = 'printable-event-card';
+    
+    // Professional event card dimensions - Portrait orientation (height > width)
     cardDiv.style.cssText = `
       position: absolute;
       left: -9999px;
-      width: 3.375in;
-      height: 2.125in;
+      width: 2.5in;
+      height: 4in;
       background: linear-gradient(135deg, #F57C00 0%, #FF9800 50%, #FFB74D 100%);
-      border-radius: 16px;
-      padding: 20px 24px;
+      border-radius: 12px;
+      padding: 0;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: space-between;
       color: white;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-      border: 2px solid rgba(255, 255, 255, 0.2);
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border: 3px solid rgba(255, 255, 255, 0.3);
       overflow: hidden;
     `;
 
-    // Add decorative pattern overlay
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
+    // Add subtle grid pattern overlay
+    const gridOverlay = document.createElement('div');
+    gridOverlay.style.cssText = `
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: 
-        radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
       pointer-events: none;
+      z-index: 0;
     `;
-    cardDiv.appendChild(overlay);
+    cardDiv.appendChild(gridOverlay);
 
-    // Header
-    const header = document.createElement('div');
-    header.style.cssText = `
-      text-align: center;
-      margin-bottom: 10px;
+    // Top section with lanyard hole and Travel Nexus logo
+    const topSection = document.createElement('div');
+    topSection.style.cssText = `
       position: relative;
       z-index: 1;
-    `;
-    const title = document.createElement('h2');
-    title.textContent = 'Travel Nexus';
-    title.style.cssText = `
-      margin: 0;
-      font-size: 24px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 2.5px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    `;
-    header.appendChild(title);
-    cardDiv.appendChild(header);
-
-    // Main content area
-    const content = document.createElement('div');
-    content.style.cssText = `
+      padding: 10px 16px 8px 16px;
       display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      flex: 1;
-      gap: 16px;
-      position: relative;
-      z-index: 1;
-      margin-top: 4px;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
     `;
+    
+    // Lanyard hole
+    const lanyardHole = document.createElement('div');
+    lanyardHole.style.cssText = `
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #e0e0e0;
+      border: 3px solid #9e9e9e;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    `;
+    topSection.appendChild(lanyardHole);
+    
+    // Travel Nexus Logo
+    if (cardData.travelNexusLogo) {
+      const logoContainer = document.createElement('div');
+      logoContainer.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 6px 12px;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      `;
+      const logoImg = document.createElement('img');
+      logoImg.src = cardData.travelNexusLogo;
+      logoImg.alt = 'Travel Nexus';
+      logoImg.style.cssText = `
+        max-height: 32px;
+        max-width: 120px;
+        object-fit: contain;
+      `;
+      logoImg.onerror = () => {
+        logoContainer.style.display = 'none';
+      };
+      logoContainer.appendChild(logoImg);
+      topSection.appendChild(logoContainer);
+    }
+    
+    cardDiv.appendChild(topSection);
 
-    // Left side - Event details
-    const eventDetails = document.createElement('div');
-    eventDetails.style.cssText = `
+    // Main content area - Portrait layout
+    const mainContent = document.createElement('div');
+    mainContent.style.cssText = `
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
-      min-width: 0;
+      padding: 12px 16px;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+      align-items: center;
     `;
 
-    const eventTitle = document.createElement('div');
-    eventTitle.textContent = cardData.eventTitle;
-    eventTitle.style.cssText = `
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      line-height: 1.25;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-    `;
-
-    const eventDate = document.createElement('div');
-    const startDate = cardData.eventStartDate ? this.formatDateForCard(cardData.eventStartDate) : 'N/A';
-    const endDate = cardData.eventEndDate ? this.formatDateForCard(cardData.eventEndDate) : '';
-    eventDate.textContent = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
-    eventDate.style.cssText = `
-      font-size: 12px;
-      margin-bottom: 10px;
-      opacity: 0.95;
-      font-weight: 500;
-    `;
-
-    const divider = document.createElement('div');
-    divider.style.cssText = `
-      width: 100%;
-      height: 1px;
-      background: rgba(255, 255, 255, 0.3);
-      margin: 6px 0 8px 0;
-    `;
-
-    const userName = document.createElement('div');
-    userName.textContent = cardData.userName;
-    userName.style.cssText = `
-      font-size: 16px;
-      font-weight: 600;
-      margin-top: 2px;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-      margin-bottom: 4px;
-    `;
-
-    const cardId = document.createElement('div');
-    cardId.textContent = `ID: ${cardData.cardId}`;
-    cardId.style.cssText = `
-      font-size: 10px;
-      opacity: 0.95;
-      margin-top: 4px;
-      font-weight: 500;
-      letter-spacing: 0.3px;
-      word-break: break-all;
-      line-height: 1.3;
-      background: rgba(0, 0, 0, 0.15);
-      padding: 3px 6px;
-      border-radius: 4px;
-      display: inline-block;
-      max-width: 100%;
-    `;
-
-    eventDetails.appendChild(eventTitle);
-    eventDetails.appendChild(eventDate);
-    eventDetails.appendChild(divider);
-    eventDetails.appendChild(userName);
-    eventDetails.appendChild(cardId);
-
-    // Right side - User image
+    // User Image - Centered at top
     const imageContainer = document.createElement('div');
     imageContainer.style.cssText = `
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
+      width: 120px;
+      height: 120px;
+      border-radius: 8px;
       border: 4px solid white;
       overflow: hidden;
       background: white;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      margin-top: -5px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+      margin-bottom: 8px;
     `;
 
     if (cardData.userImage) {
@@ -625,7 +639,7 @@ export class EventRegistrationListComponent implements OnInit, AfterViewInit {
       `;
       userImg.onerror = () => {
         // Fallback to initials if image fails to load
-        imageContainer.innerHTML = `<div style="font-size: 42px; font-weight: 700; color: #F57C00; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);">${cardData.userName.charAt(0).toUpperCase()}</div>`;
+        imageContainer.innerHTML = `<div style="font-size: 48px; font-weight: 700; color: #F57C00; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);">${cardData.userName.charAt(0).toUpperCase()}</div>`;
       };
       imageContainer.appendChild(userImg);
     } else {
@@ -633,7 +647,7 @@ export class EventRegistrationListComponent implements OnInit, AfterViewInit {
       const initialsDiv = document.createElement('div');
       initialsDiv.textContent = cardData.userName.charAt(0).toUpperCase();
       initialsDiv.style.cssText = `
-        font-size: 42px;
+        font-size: 48px;
         font-weight: 700;
         color: #F57C00;
         display: flex;
@@ -645,23 +659,158 @@ export class EventRegistrationListComponent implements OnInit, AfterViewInit {
       `;
       imageContainer.appendChild(initialsDiv);
     }
+    mainContent.appendChild(imageContainer);
 
-    content.appendChild(eventDetails);
-    content.appendChild(imageContainer);
-    cardDiv.appendChild(content);
+    // Event title with background
+    const eventTitleBg = document.createElement('div');
+    eventTitleBg.style.cssText = `
+      background: rgba(0, 0, 0, 0.6);
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      border-radius: 4px;
+      width: 100%;
+      text-align: center;
+    `;
+    const eventTitle = document.createElement('div');
+    eventTitle.textContent = cardData.eventTitle.toUpperCase();
+    eventTitle.style.cssText = `
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+      word-wrap: break-word;
+    `;
+    eventTitleBg.appendChild(eventTitle);
+    mainContent.appendChild(eventTitleBg);
+
+    // Event date
+    const eventDate = document.createElement('div');
+    const startDate = cardData.eventStartDate ? this.formatDateForCard(cardData.eventStartDate) : '';
+    const endDate = cardData.eventEndDate ? this.formatDateForCard(cardData.eventEndDate) : '';
+    const dateText = startDate && endDate && startDate !== endDate 
+      ? `${startDate} - ${endDate}` 
+      : startDate || 'TBA';
+    eventDate.textContent = dateText;
+    eventDate.style.cssText = `
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      opacity: 0.95;
+      letter-spacing: 0.3px;
+      text-align: center;
+    `;
+    mainContent.appendChild(eventDate);
+
+    // Location/Venue if available
+    if (cardData.eventLocation || cardData.eventVenue) {
+      const location = document.createElement('div');
+      location.textContent = cardData.eventVenue || cardData.eventLocation || '';
+      location.style.cssText = `
+        font-size: 10px;
+        font-weight: 500;
+        margin-bottom: 12px;
+        opacity: 0.9;
+        text-align: center;
+      `;
+      mainContent.appendChild(location);
+    }
+
+    // User name section
+    const userNameBg = document.createElement('div');
+    userNameBg.style.cssText = `
+      background: rgba(255, 255, 255, 0.15);
+      padding: 10px 12px;
+      border-radius: 4px;
+      width: 100%;
+      text-align: center;
+      margin-top: auto;
+    `;
+    const userName = document.createElement('div');
+    userName.textContent = cardData.userName.toUpperCase();
+    userName.style.cssText = `
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    `;
+    userNameBg.appendChild(userName);
+    mainContent.appendChild(userNameBg);
+    
+    cardDiv.appendChild(mainContent);
+
+    // Bottom section - Sponsor logos
+    if (cardData.sponsorLogos && cardData.sponsorLogos.length > 0) {
+      const sponsorSection = document.createElement('div');
+      sponsorSection.style.cssText = `
+        background: rgba(0, 0, 0, 0.4);
+        padding: 8px 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        position: relative;
+        z-index: 1;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+      `;
+
+      const poweredBy = document.createElement('div');
+      poweredBy.textContent = 'Powered by';
+      poweredBy.style.cssText = `
+        font-size: 9px;
+        font-weight: 600;
+        opacity: 0.8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      `;
+      sponsorSection.appendChild(poweredBy);
+
+      const logosContainer = document.createElement('div');
+      logosContainer.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      `;
+
+      cardData.sponsorLogos.forEach((logoUrl: string) => {
+        const sponsorLogo = document.createElement('img');
+        sponsorLogo.src = logoUrl;
+        sponsorLogo.alt = 'Sponsor';
+        sponsorLogo.style.cssText = `
+          max-height: 24px;
+          max-width: 60px;
+          object-fit: contain;
+          filter: brightness(0) invert(1);
+          opacity: 0.9;
+        `;
+        sponsorLogo.onerror = () => {
+          sponsorLogo.style.display = 'none';
+        };
+        logosContainer.appendChild(sponsorLogo);
+      });
+
+      sponsorSection.appendChild(logosContainer);
+      cardDiv.appendChild(sponsorSection);
+    }
 
     return cardDiv;
   }
 
   private waitForImageLoad(imageUrl: string): Promise<void> {
     return new Promise((resolve, reject) => {
+      if (!imageUrl) {
+        resolve();
+        return;
+      }
+      
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => resolve();
       img.onerror = () => resolve(); // Resolve even on error to continue
       img.src = imageUrl;
-      // Timeout after 3 seconds
-      setTimeout(() => resolve(), 3000);
+      // Timeout after 5 seconds
+      setTimeout(() => resolve(), 5000);
     });
   }
 }
