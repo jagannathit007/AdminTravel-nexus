@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { NgxPaginationModule } from 'ngx-pagination';
 
@@ -42,6 +43,19 @@ interface Event {
   createdAt: string;
   updatedAt?: string;
   pricing: Pricing[];
+  organizerId?: {
+    _id: string;
+    name: string;
+    mobile_number?: string;
+    email?: string;
+    business_name?: string;
+    profilePic?: string;
+  } | string;
+  totalStalls?: number;
+  availableStalls?: number;
+  bookedStalls?: number;
+  pendingStallRequests?: number;
+  stalls?: any[];
   coupons?: Array<{
     _id: string;
     code: string;
@@ -153,6 +167,10 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     mapUrl: '',
     eventType: 'offline',
     capacity: null,
+    organizerId: '',
+    totalStalls: null,
+    stallPrice: 0,
+    stallSize: '10x10 ft',
     sponsors: [] as Sponsor[],
     speakers: [] as Speaker[],
     schedules: [] as Schedule[],
@@ -168,6 +186,10 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     speakers: [],
     sponsors: [],
     schedules: [],
+    organizerId: '',
+    totalStalls: null,
+    stallPrice: 0,
+    stallSize: '10x10 ft',
     b2bTicketPrice: 0,
     b2bStayFee: 0,
     b2cTicketPrice: 0,
@@ -179,6 +201,10 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
   // Coupon properties
   coupons: Coupon[] = [];
   loadingCoupons: boolean = false;
+
+  // Organizer properties
+  organizers: any[] = [];
+  loadingOrganizers: boolean = false;
 
   galleryModal: any;
   selectedEventForGallery: Event | null = null;
@@ -274,6 +300,8 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     venue: false,
     eventType: false,
     capacity: false,
+    organizerId: false,
+    totalStalls: false,
     sponsors: false,
     speakers: false,
   };
@@ -292,6 +320,8 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     venue: '',
     eventType: '',
     capacity: '',
+    organizerId: '',
+    totalStalls: '',
     sponsors: '',
     speakers: '',
   };
@@ -323,7 +353,8 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     private authService: AuthService,
     private couponService: CouponService,
     private cdr: ChangeDetectorRef,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private router: Router
   ) {
     this.searchSubject.pipe(debounceTime(500)).subscribe(() => {
       this.fetchEvents();
@@ -333,6 +364,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.fetchEvents();
     this.fetchCoupons();
+    this.fetchOrganizers();
   }
   
   async fetchCoupons(): Promise<void> {
@@ -358,6 +390,39 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       swalHelper.showToast('Failed to fetch coupons', 'error');
     } finally {
       this.loadingCoupons = false;
+    }
+  }
+
+  async fetchOrganizers(): Promise<void> {
+    this.loadingOrganizers = true;
+    try {
+      const requestData = {
+        page: 1,
+        limit: 1000, // Fetch more users for organizer dropdown
+        search: ''
+      };
+      
+      const response = await this.authService.getUsers(requestData);
+      
+      if (response && response.docs) {
+        this.organizers = response.docs.map((user: any) => {
+          const displayName = user.name || user.business_name || user.email || 'Unknown';
+          const businessName = user.business_name ? ` (${user.business_name})` : '';
+          return {
+            _id: user._id,
+            name: `${displayName}${businessName}`,
+            email: user.email || '',
+            business_name: user.business_name || ''
+          };
+        });
+      }
+      
+      this.cdr.detectChanges();
+    } catch (error) {
+      console.error('Error fetching organizers:', error);
+      swalHelper.showToast('Failed to fetch organizers', 'error');
+    } finally {
+      this.loadingOrganizers = false;
     }
   }
 
@@ -660,6 +725,21 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       return false;
     }
     errors.capacity = '';
+    return true;
+  }
+
+  validateOrganizer(isEdit: boolean = false): boolean {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const touched = isEdit ? this.editTouchedFields : this.touchedFields;
+    const errors = isEdit ? this.editValidationErrors : this.validationErrors;
+
+    if (!touched.organizerId) return true;
+
+    if (!form.organizerId || form.organizerId.trim() === '') {
+      errors.organizerId = 'Organizer is required';
+      return false;
+    }
+    errors.organizerId = '';
     return true;
   }
 
@@ -1096,6 +1176,9 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
         case 'capacity':
           this.validateCapacity(isEdit);
           break;
+        case 'organizerId':
+          this.validateOrganizer(isEdit);
+          break;
         case 'sponsors':
           this.validateSponsors(isEdit);
           break;
@@ -1312,6 +1395,22 @@ async createEvent(): Promise<void> {
       }
     });
 
+    // Organizer (mandatory)
+    if (this.eventForm.organizerId) {
+      formData.append('organizerId', this.eventForm.organizerId);
+    }
+
+    // Stalls (optional)
+    if (this.eventForm.totalStalls !== null && this.eventForm.totalStalls !== undefined && this.eventForm.totalStalls > 0) {
+      formData.append('totalStalls', this.eventForm.totalStalls.toString());
+      if (this.eventForm.stallPrice) {
+        formData.append('stallPrice', this.eventForm.stallPrice.toString());
+      }
+      if (this.eventForm.stallSize) {
+        formData.append('stallSize', this.eventForm.stallSize);
+      }
+    }
+
     // Pricing
     const parsedPricing = [
       { businessType: 'B2B', ticketPrice: parseFloat(this.eventForm.b2bTicketPrice) || 0, stayFee: parseFloat(this.eventForm.b2bStayFee) || 0 },
@@ -1482,6 +1581,22 @@ async updateEvent(): Promise<void> {
         formData.append(key, this.editEventForm[key].toString());
       }
     });
+
+    // Organizer (mandatory)
+    if (this.editEventForm.organizerId) {
+      formData.append('organizerId', this.editEventForm.organizerId);
+    }
+
+    // Stalls (optional)
+    if (this.editEventForm.totalStalls !== null && this.editEventForm.totalStalls !== undefined) {
+      formData.append('totalStalls', this.editEventForm.totalStalls.toString());
+      if (this.editEventForm.stallPrice !== undefined) {
+        formData.append('stallPrice', this.editEventForm.stallPrice.toString());
+      }
+      if (this.editEventForm.stallSize) {
+        formData.append('stallSize', this.editEventForm.stallSize);
+      }
+    }
 
     // Pricing
     const parsedPricing = [
@@ -1734,6 +1849,11 @@ async updateEvent(): Promise<void> {
       isValid = false;
     }
 
+    if (!this.validateOrganizer()) {
+      this.validationErrors.organizerId = 'Organizer is required';
+      isValid = false;
+    }
+
     if (!this.validateSponsors()) {
       isValid = false;
     }
@@ -1774,6 +1894,11 @@ async updateEvent(): Promise<void> {
 
     if (!this.validateCapacity(true)) {
       this.editValidationErrors.capacity = 'Capacity is required';
+      isValid = false;
+    }
+
+    if (!this.validateOrganizer(true)) {
+      this.editValidationErrors.organizerId = 'Organizer is required';
       isValid = false;
     }
 
@@ -1883,6 +2008,10 @@ async updateEvent(): Promise<void> {
       mapUrl: '',
       eventType: 'offline',
       capacity: null,
+      organizerId: '',
+      totalStalls: null,
+      stallPrice: 0,
+      stallSize: '10x10 ft',
       sponsors: [] as Sponsor[],
       speakers: [] as Speaker[],
       schedules: [] as Schedule[],
@@ -1905,6 +2034,8 @@ async updateEvent(): Promise<void> {
       venue: '',
       eventType: '',
       capacity: '',
+      organizerId: '',
+      totalStalls: '',
       sponsors: '',
       speakers: '',
     };
@@ -1920,6 +2051,8 @@ async updateEvent(): Promise<void> {
       venue: false,
       eventType: false,
       capacity: false,
+      organizerId: false,
+      totalStalls: false,
       sponsors: false,
       speakers: false,
     };
@@ -1928,6 +2061,34 @@ async updateEvent(): Promise<void> {
   viewEvent(event: Event): void {
     this.selectedEvent = event;
     this.showViewModal();
+  }
+
+  viewStalls(eventId: string | undefined): void {
+    // Get eventId from selectedEvent if not provided
+    if (!eventId && this.selectedEvent) {
+      eventId = this.selectedEvent._id;
+    }
+    
+    if (!eventId || eventId.trim() === '') {
+      console.error('Event ID is empty in viewStalls. Selected event:', this.selectedEvent);
+      swalHelper.showToast('Event ID is missing', 'error');
+      return;
+    }
+    
+    console.log('Navigating to stalls with eventId:', eventId);
+    this.closeViewModal();
+    
+    // Use setTimeout to ensure modal is closed before navigation
+    setTimeout(() => {
+      this.router.navigate(['/event-stalls'], { 
+        queryParams: { eventId: eventId }
+      }).then(() => {
+        console.log('Navigation completed to /event-stalls with eventId:', eventId);
+      }).catch((error) => {
+        console.error('Navigation error:', error);
+        swalHelper.showToast('Failed to navigate to stalls page', 'error');
+      });
+    }, 100);
   }
 
   // Edit form management methods
@@ -2067,6 +2228,10 @@ async updateEvent(): Promise<void> {
       mapUrl: event.mapUrl || '',
       eventType: event.eventType || 'offline',
       capacity: event.capacity || null,
+      organizerId: (event as any).organizerId ? (typeof (event as any).organizerId === 'string' ? (event as any).organizerId : (event as any).organizerId._id) : '',
+      totalStalls: (event as any).totalStalls || null,
+      stallPrice: (event as any).stalls && (event as any).stalls.length > 0 ? (event as any).stalls[0].price || 0 : 0,
+      stallSize: (event as any).stalls && (event as any).stalls.length > 0 ? (event as any).stalls[0].size || '10x10 ft' : '10x10 ft',
       sponsors: JSON.parse(JSON.stringify(event.sponsors || [])),
       speakers: JSON.parse(JSON.stringify(event.speakers || [])),
       schedules: (event.schedules || []).map((schedule) => ({
@@ -2110,6 +2275,8 @@ async updateEvent(): Promise<void> {
       venue: '',
       eventType: '',
       capacity: '',
+      organizerId: '',
+      totalStalls: '',
       sponsors: '',
       speakers: '',
     };
@@ -2125,6 +2292,8 @@ async updateEvent(): Promise<void> {
       venue: false,
       eventType: false,
       capacity: false,
+      organizerId: false,
+      totalStalls: false,
       sponsors: false,
       speakers: false,
     };
@@ -2672,4 +2841,70 @@ async deleteGalleryItem(item: GalleryItem, type: 'image' | 'video'): Promise<voi
   if (!event.registrationLink) return '';
   return `${environment.baseURL}/${event.registrationLink}`;
 }
+
+  // Helper method to check if event has organizer info
+  hasOrganizerInfo(event: any): boolean {
+    return event && event.organizerId && typeof event.organizerId === 'object' && event.organizerId.name !== undefined;
+  }
+
+  // Helper method to get organizer name
+  getOrganizerName(event: any): string {
+    if (!event || !event.organizerId) return 'N/A';
+    if (typeof event.organizerId === 'object') {
+      return event.organizerId.name || 'N/A';
+    }
+    return 'N/A';
+  }
+
+  // Helper method to get organizer mobile
+  getOrganizerMobile(event: any): string {
+    if (!event || !event.organizerId) return '';
+    if (typeof event.organizerId === 'object') {
+      return event.organizerId.mobile_number || '';
+    }
+    return '';
+  }
+
+  // Helper method to get organizer business name
+  getOrganizerBusinessName(event: any): string {
+    if (!event || !event.organizerId) return '';
+    if (typeof event.organizerId === 'object') {
+      return event.organizerId.business_name || '';
+    }
+    return '';
+  }
+
+  // Helper method to get organizer email
+  getOrganizerEmail(event: any): string {
+    if (!event || !event.organizerId) return '';
+    if (typeof event.organizerId === 'object') {
+      return event.organizerId.email || '';
+    }
+    return '';
+  }
+
+  // Helper method to check if event has stalls
+  hasStalls(event: any): boolean {
+    return event && event.totalStalls && event.totalStalls > 0;
+  }
+
+  // Helper method to get total stalls
+  getTotalStalls(event: any): number {
+    return event && event.totalStalls ? event.totalStalls : 0;
+  }
+
+  // Helper method to get available stalls
+  getAvailableStalls(event: any): number {
+    return event && event.availableStalls ? event.availableStalls : 0;
+  }
+
+  // Helper method to get booked stalls
+  getBookedStalls(event: any): number {
+    return event && event.bookedStalls ? event.bookedStalls : 0;
+  }
+
+  // Helper method to get pending stall requests
+  getPendingStallRequests(event: any): number {
+    return event && event.pendingStallRequests ? event.pendingStallRequests : 0;
+  }
 }

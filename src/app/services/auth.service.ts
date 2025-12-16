@@ -1139,7 +1139,7 @@ async newGetEventById(eventId: string): Promise<any> {
                 url: `${apiEndpoints.NEW_GET_EVENT_BY_ID}?t=${new Date().getTime()}`,
                 method: 'POST',
             },
-            { id: eventId },
+            { eventId: eventId },
             this.headers
         );
         console.log('getEventById Response:', JSON.stringify(response, null, 2));
@@ -1219,6 +1219,59 @@ async newDeleteEvent(requestData: { id: string }): Promise<any> {
     } catch (error) {
         console.error('Delete Event Error:', error);
         swalHelper.showToast('Failed to delete event', 'error');
+        throw error;
+    }
+}
+
+/**
+ * Get all stall bookings for an event
+ * @param requestData - Object containing eventId
+ * @returns Promise with stall bookings data
+ */
+async getEventStallBookings(requestData: { eventId: string }): Promise<any> {
+    try {
+        this.getHeaders();
+        const response = await this.apiManager.request(
+            {
+                url: apiEndpoints.GET_EVENT_STALL_BOOKINGS,
+                method: 'POST',
+            },
+            requestData,
+            this.headers
+        );
+        return response;
+    } catch (error) {
+        console.error('Get Event Stall Bookings Error:', error);
+        swalHelper.showToast('Failed to fetch stall bookings', 'error');
+        throw error;
+    }
+}
+
+/**
+ * Approve, reject, or cancel a stall booking
+ * @param requestData - Object containing eventId, stallId, bookingId, and action
+ * @returns Promise with updated booking data
+ */
+async approveStallBooking(requestData: { 
+    eventId: string; 
+    stallId: string; 
+    bookingId: string; 
+    action: 'approve' | 'reject' | 'cancel' 
+}): Promise<any> {
+    try {
+        this.getHeaders();
+        const response = await this.apiManager.request(
+            {
+                url: apiEndpoints.APPROVE_STALL_BOOKING,
+                method: 'POST',
+            },
+            requestData,
+            this.headers
+        );
+        return response;
+    } catch (error) {
+        console.error('Approve Stall Booking Error:', error);
+        swalHelper.showToast('Failed to update stall booking status', 'error');
         throw error;
     }
 }

@@ -206,6 +206,11 @@ public DELETE_REGION= `${this.PATH}/deleteRegion`
     public NEW_CREATE_EVENT = `${this.PATH}/event/create`;
     public NEW_UPDATE_EVENT = `${this.PATH}/event/update`;
     public NEW_DELETE_EVENT = `${this.PATH}/event/delete`;
+    
+    // Stall booking endpoints
+    public BOOK_STALL = `${this.PATH}/bookStall`;
+    public APPROVE_STALL_BOOKING = `${this.PATH}/approveStallBooking`;
+    public GET_EVENT_STALL_BOOKINGS = `${this.PATH}/getEventStallBookings`;
 
 
 

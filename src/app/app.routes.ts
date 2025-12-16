@@ -62,6 +62,7 @@ import {EventPaymentsComponent} from './views/pages/paymentStatus/payment.compon
 import { EventRegistrationListComponent } from './views/pages/event-registration-list/event-registration-list.component';
 import { BannerRequestsComponent } from './views/pages/bannerRequest/bannerRequest.component';
 import { CouponMasterComponent } from './views/pages/couponMaster/coupon-master.component';
+import { EventStallsComponent } from './views/pages/event-stalls/event-stalls.component';
 
 
 export const routes: Routes = [
@@ -127,6 +128,7 @@ export const routes: Routes = [
       {path:'feedback', component: AdminFeedbackComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       {path:'newUsersRegistration', component: NewUserRegistrationComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       {path:'newEvents', component: NewEventsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      {path:'event-stalls', component: EventStallsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
 
 
 {path:'analytics', component: AnalyticsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },

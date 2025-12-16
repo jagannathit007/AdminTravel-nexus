@@ -134,30 +134,6 @@ export class BannersComponent implements OnInit, AfterViewInit {
         return;
       }
 
-      // Validate file size (5MB max)
-      const maxSize = 10 * 1024 * 1024; // 5MB in bytes
-      if (file.size > maxSize) {
-        swalHelper.showToast('File size should not exceed 10MB', 'error');
-        return;
-      }
-
-      
-
-    // Validate image dimensions
-    const img = new Image();
-    img.src = window.URL.createObjectURL(file);
-    img.onload = () => {
-      const width = img.width;
-      const height = img.height;
-      const requiredWidth = 300;
-      const requiredHeight = 160;
-
-      if (width !== requiredWidth || height !== requiredHeight) {
-        swalHelper.showToast(`Image must be ${requiredWidth}x${requiredHeight} pixels`, 'error');
-        window.URL.revokeObjectURL(img.src);
-        return;
-      }
-
       this.selectedFile = file;
       this.newBanner.image = file;
 
@@ -168,13 +144,8 @@ export class BannersComponent implements OnInit, AfterViewInit {
         this.cdr.detectChanges();
       };
       reader.readAsDataURL(file);
-    };
-    img.onerror = () => {
-      swalHelper.showToast('Failed to load image for validation', 'error');
-      window.URL.revokeObjectURL(img.src);
-    };
+    }
   }
-}
 
   openAddBannerModal(): void {
     this.editMode = false;

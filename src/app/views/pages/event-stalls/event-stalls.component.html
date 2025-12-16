@@ -1,0 +1,310 @@
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
+    <div class="card-header bg-gradient-primary d-flex justify-content-between align-items-center py-3">
+      <div class="d-flex align-items-center">
+        <button
+          class="btn btn-light btn-sm me-3"
+          (click)="goBack()"
+        >
+          <i class="bi bi-arrow-left me-2"></i>Back
+        </button>
+        <h4 class="mb-0 fw-bold text-white">
+          <i class="bi bi-shop me-2"></i>Event Stalls
+        </h4>
+      </div>
+    </div>
+
+    <!-- Event Info -->
+    <div class="card-body" *ngIf="event">
+      <h5 class="fw-bold text-primary mb-3">{{ event.title }}</h5>
+      <div class="row mb-3">
+        <div class="col-md-3">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-shop text-primary me-2 fs-5"></i>
+            <div>
+              <small class="text-muted d-block">Total Stalls</small>
+              <strong class="fs-5">{{ event.totalStalls }}</strong>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-check-circle text-success me-2 fs-5"></i>
+            <div>
+              <small class="text-muted d-block">Available</small>
+              <strong class="fs-5 text-success">{{ event.availableStalls }}</strong>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-x-circle text-danger me-2 fs-5"></i>
+            <div>
+              <small class="text-muted d-block">Booked</small>
+              <strong class="fs-5 text-danger">{{ event.bookedStalls }}</strong>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-clock-history text-warning me-2 fs-5"></i>
+            <div>
+              <small class="text-muted d-block">Pending Requests</small>
+              <strong class="fs-5 text-warning">{{ event.pendingStallRequests }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- View Bookings Toggle -->
+      <div class="mt-3" *ngIf="pendingBookings.length > 0 || approvedBookings.length > 0">
+        <button
+          class="btn btn-outline-primary"
+          (click)="toggleBookingsView()"
+        >
+          <i class="bi" [ngClass]="showBookings ? 'bi-eye-slash' : 'bi-eye'" me-2></i>
+          {{ showBookings ? 'Hide' : 'Show' }} Booking Requests
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Bookings Section -->
+  <div *ngIf="showBookings && pendingBookings.length > 0" class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
+    <div class="card-header bg-warning bg-opacity-10">
+      <h5 class="mb-0 fw-bold text-warning">
+        <i class="bi bi-clock-history me-2"></i>Pending Booking Requests ({{ pendingBookings.length }})
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3" *ngFor="let booking of pendingBookings">
+          <div class="card border-warning border-2 h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h6 class="fw-bold mb-1">
+                    <i class="bi bi-shop text-warning me-2"></i>{{ booking.stallNumber }}
+                  </h6>
+                  <small class="text-muted">{{ booking.stallName }}</small>
+                </div>
+                <span class="badge bg-warning">Pending</span>
+              </div>
+              
+              <div class="mb-2" *ngIf="booking.userId">
+                <strong>User:</strong>
+                <div class="ms-2">
+                  {{ booking.userId.name || booking.userId.email || 'N/A' }}
+                  <span *ngIf="booking.userId.business_name" class="text-muted">
+                    ({{ booking.userId.business_name }})
+                  </span>
+                </div>
+              </div>
+              
+              <div class="mb-2" *ngIf="booking.businessName">
+                <strong>Business Name:</strong> {{ booking.businessName }}
+              </div>
+              
+              <div class="mb-2" *ngIf="booking.contactNumber">
+                <strong>Contact:</strong> {{ booking.contactNumber }}
+              </div>
+              
+              <div class="mb-2" *ngIf="booking.email">
+                <strong>Email:</strong> {{ booking.email }}
+              </div>
+              
+              <div class="mb-3" *ngIf="booking.additionalInfo">
+                <strong>Additional Info:</strong>
+                <p class="mb-0 small">{{ booking.additionalInfo }}</p>
+              </div>
+              
+              <div class="d-flex gap-2">
+                <button
+                  class="btn btn-success btn-sm flex-fill"
+                  (click)="updateBookingStatus(booking.stallId, booking.bookingId, 'approve')"
+                  [disabled]="processingBooking"
+                >
+                  <i class="bi bi-check-circle me-1"></i>Approve
+                </button>
+                <button
+                  class="btn btn-danger btn-sm flex-fill"
+                  (click)="updateBookingStatus(booking.stallId, booking.bookingId, 'reject')"
+                  [disabled]="processingBooking"
+                >
+                  <i class="bi bi-x-circle me-1"></i>Reject
+                </button>
+              </div>
+              
+              <small class="text-muted d-block mt-2">
+                Requested: {{ booking.bookedAt | date:'short' }}
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center my-5 py-5">
+    <div class="spinner-grow text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+
+  <!-- Stalls Grid -->
+  <div *ngIf="!loading && stalls.length > 0" class="row">
+    <div
+      class="col-xl-3 col-lg-4 col-md-6 mb-4"
+      *ngFor="let stall of stalls"
+    >
+      <div class="card border-0 shadow-sm rounded-4 h-100 stall-card">
+        <div class="card-body">
+          <!-- Stall Header -->
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h5 class="fw-bold text-primary mb-1">{{ stall.stallNumber }}</h5>
+              <p class="text-muted mb-0 small">{{ stall.stallName }}</p>
+            </div>
+            <span
+              class="badge rounded-pill px-3 py-2"
+              [ngClass]="getStallStatusClass(stall)"
+            >
+              {{ getStallStatusText(stall) }}
+            </span>
+          </div>
+
+          <!-- Stall Details -->
+          <div class="mb-3">
+            <div class="mb-2">
+              <i class="bi bi-rulers text-primary me-2"></i>
+              <strong>Size:</strong> {{ stall.size || 'N/A' }}
+            </div>
+            <div class="mb-2">
+              <i class="bi bi-currency-rupee text-success me-2"></i>
+              <strong>Price:</strong> ₹{{ stall.price || 0 }}
+            </div>
+            <div *ngIf="stall.location" class="mb-2">
+              <i class="bi bi-geo-alt text-info me-2"></i>
+              <strong>Location:</strong> {{ stall.location }}
+            </div>
+          </div>
+
+          <!-- Amenities -->
+          <div *ngIf="stall.amenities && stall.amenities.length > 0" class="mb-3">
+            <strong class="d-block mb-2">
+              <i class="bi bi-star text-warning me-2"></i>Amenities:
+            </strong>
+            <div class="d-flex flex-wrap gap-1">
+              <span
+                class="badge bg-light text-dark border px-2 py-1"
+                *ngFor="let amenity of stall.amenities"
+              >
+                {{ amenity }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Booking Info -->
+          <div *ngIf="stall.bookings && stall.bookings.length > 0" class="mt-3 pt-3 border-top">
+            <small class="text-muted d-block mb-2 fw-bold">Booking Requests:</small>
+            
+            <!-- Pending Bookings -->
+            <div *ngFor="let booking of stall.bookings" class="mb-2">
+              <div *ngIf="booking.status === 'pending'" class="p-2 bg-warning bg-opacity-10 rounded mb-2">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="badge bg-warning">Pending</span>
+                  <div class="d-flex gap-1">
+                    <button
+                      class="btn btn-success btn-xs p-1"
+                      (click)="updateBookingStatus(stall._id, booking._id, 'approve')"
+                      [disabled]="processingBooking"
+                      title="Approve"
+                    >
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                    <button
+                      class="btn btn-danger btn-xs p-1"
+                      (click)="updateBookingStatus(stall._id, booking._id, 'reject')"
+                      [disabled]="processingBooking"
+                      title="Reject"
+                    >
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                </div>
+                <div *ngIf="booking.userId" class="small">
+                  <strong>User:</strong> 
+                  <span *ngIf="booking.userId.name">{{ booking.userId.name }}</span>
+                  <span *ngIf="!booking.userId.name && booking.userId.email">{{ booking.userId.email }}</span>
+                  <span *ngIf="!booking.userId.name && !booking.userId.email">N/A</span>
+                  <span *ngIf="booking.userId.business_name" class="text-muted">
+                    ({{ booking.userId.business_name }})
+                  </span>
+                </div>
+                <div *ngIf="booking.businessName" class="small">
+                  <strong>Business:</strong> {{ booking.businessName }}
+                </div>
+                <div *ngIf="booking.contactNumber" class="small">
+                  <strong>Contact:</strong> {{ booking.contactNumber }}
+                </div>
+                <div *ngIf="booking.email" class="small">
+                  <strong>Email:</strong> {{ booking.email }}
+                </div>
+                <small class="text-muted d-block mt-1">
+                  Requested: {{ booking.bookedAt | date:'short' }}
+                </small>
+              </div>
+              
+              <!-- Approved Booking -->
+              <div *ngIf="booking.status === 'approved'" class="p-2 bg-success bg-opacity-10 rounded mb-2">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="badge bg-success">Approved</span>
+                  <button
+                    class="btn btn-warning btn-xs p-1"
+                    (click)="updateBookingStatus(stall._id, booking._id, 'cancel')"
+                    [disabled]="processingBooking"
+                    title="Cancel Booking"
+                  >
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </div>
+                <div *ngIf="booking.userId" class="small">
+                  <strong>User:</strong> 
+                  <span *ngIf="booking.userId.name">{{ booking.userId.name }}</span>
+                  <span *ngIf="!booking.userId.name && booking.userId.email">{{ booking.userId.email }}</span>
+                  <span *ngIf="!booking.userId.name && !booking.userId.email">N/A</span>
+                  <span *ngIf="booking.userId.business_name" class="text-muted">
+                    ({{ booking.userId.business_name }})
+                  </span>
+                </div>
+                <div *ngIf="booking.businessName" class="small">
+                  <strong>Business:</strong> {{ booking.businessName }}
+                </div>
+                <small class="text-muted d-block mt-1" *ngIf="booking.approvedAt">
+                  Approved: {{ booking.approvedAt | date:'short' }}
+                </small>
+              </div>
+              
+              <!-- Rejected Booking -->
+              <div *ngIf="booking.status === 'rejected'" class="p-2 bg-danger bg-opacity-10 rounded mb-2">
+                <span class="badge bg-danger">Rejected</span>
+                <div *ngIf="booking.userId" class="small mt-1">
+                  <strong>User:</strong> {{ booking.userId.name || booking.userId.email || 'N/A' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- No Stalls Message -->
+  <div *ngIf="!loading && stalls.length === 0" class="text-center my-5 py-5">
+    <i class="bi bi-shop fs-1 text-muted mb-3 d-block"></i>
+    <h5 class="text-muted">No stalls available for this event</h5>
+  </div>
+</div>
+

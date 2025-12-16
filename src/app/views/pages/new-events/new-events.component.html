@@ -573,6 +573,91 @@
                     >Enter the maximum number of attendees</small
                   >
                 </div>
+                <div class="col-md-6 mb-3">
+                  <label for="organizerId" class="form-label">Organizer <span class="text-danger">*</span></label>
+                  <ng-select
+                    id="organizerId"
+                    [items]="organizers"
+                    bindLabel="name"
+                    bindValue="_id"
+                    [(ngModel)]="eventForm.organizerId"
+                    name="organizerId"
+                    placeholder="Select organizer"
+                    [loading]="loadingOrganizers"
+                    [clearable]="false"
+                    required
+                    (blur)="onFieldBlur('organizerId')"
+                    [class.is-invalid]="validationErrors.organizerId"
+                  >
+                  </ng-select>
+                  <div
+                    class="invalid-feedback d-block"
+                    *ngIf="validationErrors.organizerId"
+                  >
+                    {{ validationErrors.organizerId }}
+                  </div>
+                  <small class="text-muted"
+                    >Select the event organizer</small
+                  >
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="totalStalls" class="form-label">Number of Stalls</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="totalStalls"
+                    placeholder="Enter number of stalls (optional)"
+                    [(ngModel)]="eventForm.totalStalls"
+                    name="totalStalls"
+                    min="0"
+                    (blur)="onFieldBlur('totalStalls')"
+                    [class.is-invalid]="validationErrors.totalStalls"
+                  />
+                  <div
+                    class="invalid-feedback"
+                    *ngIf="validationErrors.totalStalls"
+                  >
+                    {{ validationErrors.totalStalls }}
+                  </div>
+                  <small class="text-muted"
+                    >Enter the number of stalls for this event (optional)</small
+                  >
+                </div>
+                <div class="col-md-6 mb-3" *ngIf="eventForm.totalStalls && eventForm.totalStalls > 0">
+                  <label for="stallPrice" class="form-label">Stall Price</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="stallPrice"
+                    placeholder="Enter stall price"
+                    [(ngModel)]="eventForm.stallPrice"
+                    name="stallPrice"
+                    min="0"
+                    step="0.01"
+                  />
+                  <small class="text-muted"
+                    >Price per stall</small
+                  >
+                </div>
+              </div>
+              <div class="row" *ngIf="eventForm.totalStalls && eventForm.totalStalls > 0">
+                <div class="col-md-6 mb-3">
+                  <label for="stallSize" class="form-label">Stall Size</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="stallSize"
+                    placeholder="Enter stall size (e.g., 10x10 ft)"
+                    [(ngModel)]="eventForm.stallSize"
+                    name="stallSize"
+                  />
+                  <small class="text-muted"
+                    >Size of each stall</small
+                  >
+                </div>
               </div>
             </form>
           </div>
@@ -1909,6 +1994,91 @@
                     >Enter the maximum number of attendees</small
                   >
                 </div>
+                <div class="col-md-6 mb-3">
+                  <label for="editOrganizerId" class="form-label">Organizer <span class="text-danger">*</span></label>
+                  <ng-select
+                    id="editOrganizerId"
+                    [items]="organizers"
+                    bindLabel="name"
+                    bindValue="_id"
+                    [(ngModel)]="editEventForm.organizerId"
+                    name="editOrganizerId"
+                    placeholder="Select organizer"
+                    [loading]="loadingOrganizers"
+                    [clearable]="false"
+                    required
+                    (blur)="onFieldBlur('organizerId', true)"
+                    [class.is-invalid]="editValidationErrors.organizerId"
+                  >
+                  </ng-select>
+                  <div
+                    class="invalid-feedback d-block"
+                    *ngIf="editValidationErrors.organizerId"
+                  >
+                    {{ editValidationErrors.organizerId }}
+                  </div>
+                  <small class="text-muted"
+                    >Select the event organizer</small
+                  >
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="editTotalStalls" class="form-label">Number of Stalls</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="editTotalStalls"
+                    placeholder="Enter number of stalls (optional)"
+                    [(ngModel)]="editEventForm.totalStalls"
+                    name="editTotalStalls"
+                    min="0"
+                    (blur)="onFieldBlur('totalStalls', true)"
+                    [class.is-invalid]="editValidationErrors.totalStalls"
+                  />
+                  <div
+                    class="invalid-feedback"
+                    *ngIf="editValidationErrors.totalStalls"
+                  >
+                    {{ editValidationErrors.totalStalls }}
+                  </div>
+                  <small class="text-muted"
+                    >Enter the number of stalls for this event (optional)</small
+                  >
+                </div>
+                <div class="col-md-6 mb-3" *ngIf="editEventForm.totalStalls && editEventForm.totalStalls > 0">
+                  <label for="editStallPrice" class="form-label">Stall Price</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="editStallPrice"
+                    placeholder="Enter stall price"
+                    [(ngModel)]="editEventForm.stallPrice"
+                    name="editStallPrice"
+                    min="0"
+                    step="0.01"
+                  />
+                  <small class="text-muted"
+                    >Price per stall</small
+                  >
+                </div>
+              </div>
+              <div class="row" *ngIf="editEventForm.totalStalls && editEventForm.totalStalls > 0">
+                <div class="col-md-6 mb-3">
+                  <label for="editStallSize" class="form-label">Stall Size</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="editStallSize"
+                    placeholder="Enter stall size (e.g., 10x10 ft)"
+                    [(ngModel)]="editEventForm.stallSize"
+                    name="editStallSize"
+                  />
+                  <small class="text-muted"
+                    >Size of each stall</small
+                  >
+                </div>
               </div>
             </form>
           </div>
@@ -3129,6 +3299,87 @@
                   <div *ngFor="let price of selectedEvent.pricing">
                     <strong>{{price.businessType}}:</strong> Ticket ₹{{price.ticketPrice}} | Stay ₹{{price.stayFee}}<br>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Organizer Section -->
+          <div class="row mb-4" *ngIf="selectedEvent && hasOrganizerInfo(selectedEvent)">
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3 text-primary">
+                    <i class="bi bi-person-badge me-2"></i>Organizer Details
+                  </h6>
+                  <div class="mb-2">
+                    <strong>Name:</strong>
+                    <div class="ms-3">
+                      {{ getOrganizerName(selectedEvent) }}
+                    </div>
+                  </div>
+                  <div class="mb-2" *ngIf="getOrganizerMobile(selectedEvent)">
+                    <strong>Mobile:</strong>
+                    <div class="ms-3">
+                      {{ getOrganizerMobile(selectedEvent) }}
+                    </div>
+                  </div>
+                  <div class="mb-2" *ngIf="getOrganizerBusinessName(selectedEvent)">
+                    <strong>Business Name:</strong>
+                    <div class="ms-3">
+                      {{ getOrganizerBusinessName(selectedEvent) }}
+                    </div>
+                  </div>
+                  <div class="mb-2" *ngIf="getOrganizerEmail(selectedEvent)">
+                    <strong>Email:</strong>
+                    <div class="ms-3">
+                      {{ getOrganizerEmail(selectedEvent) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stalls Section -->
+          <div class="row mb-4" *ngIf="selectedEvent && hasStalls(selectedEvent)">
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3 text-primary">
+                    <i class="bi bi-shop me-2"></i>Stalls Information
+                  </h6>
+                  <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span><strong>Total Stalls:</strong></span>
+                      <span 
+                        class="badge bg-primary fs-6 cursor-pointer"
+                        style="cursor: pointer;"
+                        (click)="viewStalls(selectedEvent._id)"
+                        title="Click to view all stalls"
+                      >
+                        {{ getTotalStalls(selectedEvent) }}
+                      </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span><strong>Available:</strong></span>
+                      <span class="badge bg-success fs-6">{{ getAvailableStalls(selectedEvent) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span><strong>Booked:</strong></span>
+                      <span class="badge bg-danger fs-6">{{ getBookedStalls(selectedEvent) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3" *ngIf="getPendingStallRequests(selectedEvent)">
+                      <span><strong>Pending Requests:</strong></span>
+                      <span class="badge bg-warning fs-6">{{ getPendingStallRequests(selectedEvent) }}</span>
+                    </div>
+                  </div>
+                  <button
+                    class="btn btn-primary w-100"
+                    (click)="viewStalls(selectedEvent._id)"
+                  >
+                    <i class="bi bi-shop me-2"></i>View All Stalls
+                  </button>
                 </div>
               </div>
             </div>
