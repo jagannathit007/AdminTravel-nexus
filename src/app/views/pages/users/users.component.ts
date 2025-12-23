@@ -738,22 +738,32 @@ export class UsersComponent implements OnInit, AfterViewInit {
   }
 
   async toggleUserStatus(user: any): Promise<void> {
+    // Store original state in case we need to revert
+    const originalState = user.isActive;
+    
+    // Optimistically update UI
+    user.isActive = !user.isActive;
+    user._toggling = true; // Flag to show this specific toggle is processing
+    
     try {
-      this.loading = true;
       const response = await this.authService.toggleUserStatus({ id: user._id });
       if (response && response.success) {
         user.isActive = response.data;
         swalHelper.showToast(`User status changed to ${response.data ? 'Active' : 'Inactive'}`, 'success');
       } else {
+        // Revert on error
+        user.isActive = originalState;
         const errorMessage = response?.message || 'Failed to update user status';
         console.error('Toggle user status failed:', errorMessage);
         swalHelper.showToast(errorMessage, 'error');
       }
     } catch (error) {
+      // Revert on error
+      user.isActive = originalState;
       console.error('Error updating user status:', error);
       swalHelper.showToast('Failed to update user status', 'error');
     } finally {
-      this.loading = false;
+      user._toggling = false;
       this.cdr.detectChanges();
     }
   }

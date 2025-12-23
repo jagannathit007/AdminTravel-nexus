@@ -465,7 +465,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       const requestData = {
         page: this.payload.page,
         limit: this.payload.limit,
-        search: this.payload.search,
+        search: this.payload.search || '',
         isActive: this.payload.isActive,
       };
 
@@ -583,22 +583,16 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     const form = isEdit ? this.editEventForm : this.eventForm;
     
     if (form.eventType === 'online') {
-      // Auto-fill location with "online"
-      form.location = 'online';
-      
-      // Prefix venue with "zoom" if it doesn't already start with it
-      if (!form.venue || !form.venue.toLowerCase().startsWith('zoom')) {
-        form.venue = form.venue ? `zoom ${form.venue}` : 'zoom';
-      }
+      // For online events, force a clean online setup
+      form.location = 'online';           // Always set location to "online"
+      form.venue = 'zoom';               // Use a clean platform label
     } else {
       // Clear location if changed from online to offline/hybrid
       if (form.location === 'online') {
         form.location = '';
       }
-      // Remove zoom prefix if venue starts with zoom
-      if (form.venue && form.venue.toLowerCase().startsWith('zoom ')) {
-        form.venue = form.venue.substring(5); // Remove "zoom " prefix
-      } else if (form.venue && form.venue.toLowerCase() === 'zoom') {
+      // If venue was set to the online platform placeholder, clear it
+      if (form.venue && form.venue.toLowerCase() === 'zoom') {
         form.venue = '';
       }
     }

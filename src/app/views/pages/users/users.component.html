@@ -46,6 +46,7 @@
             <th class="py-3">Specializations</th>
             <th class="py-3">Services</th>
             <th class="py-3">Regions</th>
+            <th class="py-3">Status</th>
             <th class="text-end pe-4 py-3">Action</th>
           </tr>
         </thead>
@@ -107,6 +108,19 @@
                 </span>
                 <span *ngIf="!user.regions || user.regions.length === 0" class="text-muted">N/A</span>
               </div>
+            </td>
+            <td class="py-3">
+              <button
+                type="button"
+                class="btn btn-sm d-inline-flex align-items-center px-3 py-1 rounded-1 border"
+                [ngClass]="user.isActive !== false ? 'bg-success text-white border-success' : 'bg-danger text-white border-danger'"
+                (click)="toggleUserStatus(user)"
+                [disabled]="user._toggling"
+                style="min-width: 90px;"
+              >
+                <i class="bi me-1" [ngClass]="user.isActive !== false ? 'bi-check-circle' : 'bi-x-circle'"></i>
+                <span class="fw-semibold">{{ user.isActive !== false ? 'Active' : 'Inactive' }}</span>
+              </button>
             </td>
             <td class="text-end pe-4 py-3">
               <div class="dropdown">
@@ -243,7 +257,7 @@
                   <div *ngIf="selectedUser.regions && selectedUser.regions.length > 0; else noRegions">
                     <div *ngFor="let region of selectedUser.regions" class="mb-2">
                       <span class="badge bg-info me-2">{{ region.name }}</span>
-                      <small class="text-muted">{{ region.countries?.join(', ') || 'N/A' }}</small>
+                  <small class="text-muted">{{ region.countries && region.countries.length ? region.countries.join(', ') : 'N/A' }}</small>
                     </div>
                   </div>
                   <ng-template #noRegions>
