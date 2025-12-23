@@ -180,7 +180,7 @@
                        onerror="this.src='assets/images/placeholder-image.png'">
                 </div>
                 <h5 class="mb-1 mt-2">{{selectedComplaint.userId?.name || 'Unknown User'}}</h5>
-                <p class="text-muted">{{selectedComplaint.user?.email || 'N/A'}}</p>
+                <!-- <p class="text-muted">{{selectedComplaint.user?.email || 'N/A'}}</p> -->
                 <div class="mt-2">
                   <span class="badge bg-light text-dark px-3 py-2">User ID: {{selectedComplaint.userId?._id ? selectedComplaint.userId._id.substring(0, 8) : 'N/A'}}</span>
                 </div>
@@ -232,7 +232,7 @@
                 <div class="mb-4">
                   <p class="mb-2 text-muted small">Description:</p>
                   <div class="bg-light p-3 rounded-3">
-                    <p class="mb-0">{{selectedComplaint.description || 'No description provided'}}</p>
+                    <p class="mb-0">{{selectedComplaint.details || 'No description provided'}}</p>
                   </div>
                 </div>
               </div>
