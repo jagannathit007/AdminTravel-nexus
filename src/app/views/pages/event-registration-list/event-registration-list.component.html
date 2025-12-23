@@ -89,9 +89,13 @@
               <span *ngIf="!getScreenshotUrl(reg)" class="text-muted">N/A</span>
             </td>
             <td class="py-3">
-              <span class="badge rounded-pill" [ngClass]="getPaymentStatusClass(reg)">
+              <button class="btn btn-sm rounded-pill"
+                      [ngClass]="getPaymentStatusToggleClass(reg)"
+                      (click)="togglePaymentStatus(reg)"
+                      [disabled]="registrationsLoading || !reg.paymentDetails?._id"
+                      title="Click to toggle payment status">
                 {{getPaymentStatusText(reg)}}
-              </span>
+              </button>
             </td>
             <td class="py-3">
               <button class="btn btn-sm rounded-pill"
@@ -300,9 +304,13 @@
                 <div class="mb-3">
                   <label class="form-label text-muted small mb-1">Payment Status</label>
                   <p class="mb-0">
-                    <span class="badge rounded-pill" [ngClass]="getPaymentStatusClass(selectedRegistrationDetails)">
+                    <button class="btn btn-sm rounded-pill"
+                            [ngClass]="getPaymentStatusToggleClass(selectedRegistrationDetails)"
+                            (click)="togglePaymentStatus(selectedRegistrationDetails)"
+                            [disabled]="registrationsLoading || !selectedRegistrationDetails.paymentDetails?._id"
+                            title="Click to toggle payment status">
                       {{getPaymentStatusText(selectedRegistrationDetails)}}
-                    </span>
+                    </button>
                   </p>
                 </div>
                 <div class="mb-3">

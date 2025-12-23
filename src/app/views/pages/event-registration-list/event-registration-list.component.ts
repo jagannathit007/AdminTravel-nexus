@@ -163,6 +163,7 @@ export class EventRegistrationListComponent implements OnInit, AfterViewInit {
   }
 
   async toggleRegistrationStatus(registration: any): Promise<void> {
+    console.log('Toggling registration status for:', registration);
     const currentStatus = registration.registrationDetails?.status || 'pending';
     const newStatus = currentStatus === 'pending' ? 'confirmed' : 'pending';
 
@@ -176,7 +177,7 @@ export class EventRegistrationListComponent implements OnInit, AfterViewInit {
       this.registrationsLoading = true;
       try {
         const response = await this.eventService.updateRegistrationStatus(
-          registration._id, 
+          registration.registrationDetails._id, 
           newStatus
         );
         
@@ -193,6 +194,69 @@ export class EventRegistrationListComponent implements OnInit, AfterViewInit {
       } catch (error: any) {
         console.error('Error updating registration status:', error);
         swalHelper.showToast(error?.response?.data?.message || 'Failed to update registration status', 'error');
+      } finally {
+        this.registrationsLoading = false;
+      }
+    }
+  }
+
+  async togglePaymentStatus(registration: any): Promise<void> {
+    console.log('Toggling payment status for:', registration);
+    
+    if (!registration.paymentDetails?._id) {
+      swalHelper.showToast('Payment details not found for this registration', 'error');
+      return;
+    }
+
+    const currentStatus = registration.registrationDetails?.paymentStatus || registration.paymentDetails?.status || 'pending';
+    
+    // Determine next status based on current status
+    let newStatus: string;
+    if (currentStatus === 'pending') {
+      newStatus = 'completed';
+    } else if (currentStatus === 'completed' || currentStatus === 'paid') {
+      newStatus = 'pending';
+    } else {
+      // For failed/refunded, allow changing to completed
+      newStatus = 'completed';
+    }
+
+    const result = await swalHelper.confirmation(
+      'Update Payment Status',
+      `Change payment status from "${currentStatus}" to "${newStatus}"?`,
+      'warning'
+    );
+
+    if (result.isConfirmed) {
+      this.registrationsLoading = true;
+      try {
+        const response = await this.eventService.updatePaymentStatus(
+          registration.paymentDetails._id,
+          newStatus
+        );
+        
+        if (response.success) {
+          swalHelper.showToast('Payment status updated successfully', 'success');
+          
+          // Update local registration object
+          if (!registration.registrationDetails) {
+            registration.registrationDetails = {};
+          }
+          registration.registrationDetails.paymentStatus = newStatus;
+          
+          // Also update paymentDetails if it exists
+          if (registration.paymentDetails) {
+            registration.paymentDetails.status = newStatus;
+          }
+          
+          // Refresh the list to get updated data
+          await this.fetchRegistrations();
+        } else {
+          swalHelper.showToast(response.message || 'Failed to update payment status', 'error');
+        }
+      } catch (error: any) {
+        console.error('Error updating payment status:', error);
+        swalHelper.showToast(error?.response?.data?.message || 'Failed to update payment status', 'error');
       } finally {
         this.registrationsLoading = false;
       }
@@ -322,6 +386,18 @@ export class EventRegistrationListComponent implements OnInit, AfterViewInit {
   getPaymentStatusText(reg: any): string {
     const status = reg.registrationDetails?.paymentStatus || reg.paymentDetails?.status || 'pending';
     return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  getPaymentStatusToggleClass(reg: any): string {
+    const status = reg.registrationDetails?.paymentStatus || reg.paymentDetails?.status || 'pending';
+    if (status === 'completed' || status === 'paid') return 'btn-success';
+    if (status === 'pending') return 'btn-warning';
+    if (status === 'failed' || status === 'refunded' || status === 'cancelled') return 'btn-danger';
+    return 'btn-secondary';
+  }
+
+  getPaymentStatus(reg: any): string {
+    return reg.registrationDetails?.paymentStatus || reg.paymentDetails?.status || 'pending';
   }
 
   getRegistrationStatusText(status: string): string {
