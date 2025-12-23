@@ -465,6 +465,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       const requestData = {
         page: this.payload.page,
         limit: this.payload.limit,
+        search: this.payload.search,
         isActive: this.payload.isActive,
       };
 

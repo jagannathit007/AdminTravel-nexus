@@ -14,8 +14,8 @@ declare var $: any;
   standalone: true,
   imports: [CommonModule, FormsModule, NgxPaginationModule, NgSelectModule],
   providers: [BannerRateService],
-  templateUrl: './bannerrates.component.html',
-  styleUrls: ['./bannerrates.component.css'],
+  templateUrl: './bannerRates.component.html',
+  styleUrls: ['./bannerRates.component.css'],
 })
 export class BannerRatesComponent implements OnInit, AfterViewInit {
   bannerRates: BannerRateResponse = {
