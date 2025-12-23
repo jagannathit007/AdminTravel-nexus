@@ -60,7 +60,7 @@
           <tr>
             <th class="ps-4 py-3">User</th>
             <th class="py-3">Title</th>
-            <th class="py-3">Description</th>
+            <!-- <th class="py-3">Description</th> -->
             <th class="py-3">Status</th>
             <th class="py-3">Date Created</th>
             <th class="text-end pe-4 py-3">Action</th>
@@ -83,11 +83,11 @@
             <td class="py-3">
               <div class="fw-semibold">{{complaint.title || 'N/A'}}</div>
             </td>
-            <td class="py-3">
+            <!-- <td class="py-3">
               <div class="text-muted">
                 {{complaint.description ? (complaint.description | slice:0:50) + (complaint.description.length > 50 ? '...' : '') : 'N/A'}}
               </div>
-            </td>
+            </td> -->
             <td class="py-3">
               <span class="badge rounded-pill px-3 py-2"
                     [ngClass]="{
