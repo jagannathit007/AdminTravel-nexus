@@ -531,7 +531,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
       state: user.state || '',
       country: user.country || '',
       business_name: user.business_name || '',
-      business_type: user.business_type || '', // Added business_type
+      business_type: (user as any).business?.[0]?.business_type || '', // Fixed: business_type is nested in business array
       regions: user.regions?.map(region => region._id) || [],
       dmc_specializations: user.dmc_specializations || [],
       services_offered: user.services_offered || []
