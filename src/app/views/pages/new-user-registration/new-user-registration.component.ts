@@ -11,6 +11,7 @@ import { RegionService } from '../../../services/auth.service';
 import { AuthService } from '../../../services/auth.service';
 import { DashboardService } from '../../../services/auth.service';
 import { swalHelper } from '../../../core/constants/swal-helper';
+import Swal from 'sweetalert2';
 import { debounceTime, Subject } from 'rxjs';
 
 declare var $: any;
@@ -188,6 +189,14 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   registerModal: any;
   userDetailsModal: any;
   selectedUserDetails: Registration | null = null;
+  importingExcel: boolean = false;
+  previewModal: any;
+  excelPreviewData: any = null;
+  columnMapping: any = {};
+  availableFields: any[] = [];
+  excelColumns: string[] = [];
+  filePath: string = '';
+  previewLoading: boolean = false;
 
   constructor(
     private registerService: RegisterUserAuthService,
@@ -221,6 +230,10 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       const userDetailsModalElement = document.getElementById('userDetailsModal');
       if (userDetailsModalElement) {
         this.userDetailsModal = new bootstrap.Modal(userDetailsModalElement);
+      }
+      const previewModalElement = document.getElementById('excelPreviewModal');
+      if (previewModalElement) {
+        this.previewModal = new bootstrap.Modal(previewModalElement);
       }
     }, 300);
   }
@@ -921,5 +934,282 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
         this.userDetailsModal.show();
       }
     }
+  }
+
+  triggerFileInput(): void {
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
+
+  async onFileSelected(event: any): Promise<void> {
+    const file = event.target.files[0];
+    if (!file) {
+      return;
+    }
+
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    const allowedExtensions = ['xls', 'xlsx', 'xlsm', 'csv'];
+
+    if (!allowedExtensions.includes(fileExtension || '')) {
+      swalHelper.showToast('Invalid file type. Please upload an Excel (.xls, .xlsx, .xlsm) or CSV (.csv) file.', 'error');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      swalHelper.showToast('File size exceeds 10MB. Please upload a smaller file.', 'error');
+      event.target.value = '';
+      return;
+    }
+
+    // Preview Excel file
+    await this.previewExcelFile(file, event);
+  }
+
+  async previewExcelFile(file: File, event: any): Promise<void> {
+    this.previewLoading = true;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await this.authService.previewExcelFile(formData);
+      if (response.success) {
+        this.excelPreviewData = response.data;
+        this.excelColumns = response.data.excelColumns || [];
+        this.availableFields = response.data.availableFields || [];
+        this.filePath = response.data.filePath;
+        
+        // Initialize column mapping - try to auto-map by matching column names
+        this.initializeColumnMapping();
+        
+        // Open preview modal
+        if (this.previewModal) {
+          this.previewModal.show();
+        }
+      } else {
+        swalHelper.showToast(response.message || 'Failed to preview Excel file', 'error');
+        event.target.value = '';
+      }
+    } catch (error: any) {
+      console.error('Error previewing Excel:', error);
+      swalHelper.showToast('Error previewing Excel file: ' + (error.message || 'Unknown error'), 'error');
+      event.target.value = '';
+    } finally {
+      this.previewLoading = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  initializeColumnMapping(): void {
+    this.columnMapping = {};
+    
+    // Auto-map columns by matching names (case-insensitive)
+    const fieldMap: { [key: string]: string[] } = {
+      'name': ['name', 'first_name', 'full_name', 'user_name'],
+      'email': ['email', 'email_id', 'e_mail'],
+      'mobile_number': ['mobile_number', 'mobile', 'phone', 'phone_number', 'contact'],
+      'business_name': ['business_name', 'company_name', 'company', 'business'],
+      'city': ['city'],
+      'state': ['state'],
+      'country': ['country'],
+      'address': ['address', 'registered_office_address'],
+      'business_type': ['business_type', 'registered_as'],
+      'regions': ['regions', 'region'],
+      'dmc_specializations': ['dmc_specializations', 'dmc_specialization'],
+      'services_offered': ['services_offered', 'services', 'b2b_registered_for'],
+      'isActive': ['isActive', 'is_active', 'active'],
+      'isMember': ['isMember', 'is_member', 'member']
+    };
+
+    this.availableFields.forEach((field: any) => {
+      const possibleNames = fieldMap[field.key] || [field.key.toLowerCase()];
+      const matchedColumn = this.excelColumns.find(col => 
+        possibleNames.some(name => col.toLowerCase().replace(/[_\s]/g, '') === name.toLowerCase().replace(/[_\s]/g, ''))
+      );
+      if (matchedColumn) {
+        this.columnMapping[field.key] = matchedColumn;
+      }
+    });
+  }
+
+  async importWithMapping(): Promise<void> {
+    // Validate required fields
+    const requiredFields = this.availableFields.filter((f: any) => f.required);
+    const missingFields = requiredFields.filter((f: any) => !this.columnMapping[f.key]);
+    
+    if (missingFields.length > 0) {
+      swalHelper.showToast(
+        `Please map required fields: ${missingFields.map((f: any) => f.label).join(', ')}`,
+        'error'
+      );
+      return;
+    }
+
+    const confirmationResult = await swalHelper.takeConfirmation(
+      'Import Users from Excel',
+      `Are you sure you want to import ${this.excelPreviewData.totalRows} users?`,
+      'Yes, Import!'
+    );
+
+    if (!confirmationResult.isConfirmed) {
+      return;
+    }
+
+    this.importingExcel = true;
+    
+    try {
+      const response = await this.authService.importUserRegistrationsFromExcel(
+        this.columnMapping,
+        this.filePath
+      );
+      
+      if (response.success) {
+        const data = response.data;
+        
+        // Show success toast
+        swalHelper.showToast(
+          `Successfully imported ${data.created} users out of ${data.total} total rows.`,
+          'success'
+        );
+        
+        // Show detailed breakdown if rows were skipped
+        if (data.skipped > 0) {
+          let detailsHtml = `
+            <div style="text-align: left; margin-top: 15px;">
+              <h4 style="margin-bottom: 15px; color: #333;">Import Summary</h4>
+              <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <p style="margin: 5px 0;"><strong>Total Rows:</strong> ${data.total}</p>
+                <p style="margin: 5px 0; color: #28a745;"><strong>✓ Created:</strong> ${data.created}</p>
+                <p style="margin: 5px 0; color: #ffc107;"><strong>⚠ Skipped:</strong> ${data.skipped}</p>
+              </div>
+          `;
+          
+          if (data.skippedDetails) {
+            detailsHtml += `
+              <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <h5 style="margin-bottom: 10px; color: #856404;">Skipped Details:</h5>
+                <p style="margin: 5px 0;">• <strong>Duplicates:</strong> ${data.skippedDetails.duplicates} rows (already exist in database)</p>
+                <p style="margin: 5px 0;">• <strong>Missing Fields:</strong> ${data.skippedDetails.missingFields} rows (missing name, email, or mobile)</p>
+                ${data.skippedDetails.other > 0 ? `<p style="margin: 5px 0;">• <strong>Other Errors:</strong> ${data.skippedDetails.other} rows</p>` : ''}
+              </div>
+            `;
+          }
+          
+          // Add sample skipped rows
+          if (data.skippedRows && data.skippedRows.length > 0) {
+            const sampleRows = data.skippedRows.slice(0, 10);
+            detailsHtml += `
+              <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto;">
+                <h5 style="margin-bottom: 10px;">Sample Skipped Rows (showing first 10):</h5>
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                  <thead>
+                    <tr style="background: #e9ecef;">
+                      <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Row #</th>
+                      <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Reason</th>
+                      <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+            `;
+            
+            sampleRows.forEach((skipped: any) => {
+              let details = '';
+              if (skipped.reason === 'Duplicate user') {
+                details = `Email: ${skipped.email || 'N/A'}, Mobile: ${skipped.mobile_number || 'N/A'}`;
+              } else if (skipped.reason === 'Missing required fields') {
+                details = `Missing: ${skipped.missingFields?.join(', ') || 'N/A'}`;
+              } else {
+                details = skipped.error || 'N/A';
+              }
+              
+              detailsHtml += `
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #dee2e6;">${skipped.row}</td>
+                  <td style="padding: 8px; border: 1px solid #dee2e6;">${skipped.reason}</td>
+                  <td style="padding: 8px; border: 1px solid #dee2e6; font-size: 11px;">${details}</td>
+                </tr>
+              `;
+            });
+            
+            detailsHtml += `
+                  </tbody>
+                </table>
+                ${data.skippedRows.length > 10 ? `<p style="margin-top: 10px; font-size: 11px; color: #6c757d;">... and ${data.skippedRows.length - 10} more. Check console for full details.</p>` : ''}
+              </div>
+            `;
+          }
+          
+          detailsHtml += `</div>`;
+          
+          // Show detailed modal
+          Swal.fire({
+            icon: 'info',
+            title: 'Import Complete',
+            html: detailsHtml,
+            width: '700px',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#3085d6'
+          });
+        }
+        
+        // Log full details to console for debugging
+        if (data.skippedRows && data.skippedRows.length > 0) {
+          console.group('📊 Import Summary - Skipped Rows');
+          console.log('Total Skipped:', data.skipped);
+          if (data.skippedDetails) {
+            console.log('Duplicates:', data.skippedDetails.duplicates);
+            console.log('Missing Fields:', data.skippedDetails.missingFields);
+            console.log('Other Errors:', data.skippedDetails.other);
+          }
+          console.log('All Skipped Rows:', data.skippedRows);
+          console.groupEnd();
+        }
+        
+        // Log errors if any
+        if (data.errors && data.errors.length > 0) {
+          console.group('❌ Import Errors');
+          console.error('Errors:', data.errors);
+          console.groupEnd();
+        }
+        
+        this.fetchRegistrations();
+        this.closePreviewModal();
+      } else {
+        swalHelper.showToast(response.message || 'Failed to import users.', 'error');
+      }
+    } catch (error: any) {
+      console.error('Error importing Excel:', error);
+      swalHelper.showToast('Error importing Excel file: ' + (error.message || 'Unknown error'), 'error');
+    } finally {
+      this.importingExcel = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  closePreviewModal(): void {
+    if (this.previewModal) {
+      this.previewModal.hide();
+    }
+    this.excelPreviewData = null;
+    this.columnMapping = {};
+    this.filePath = '';
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
+  getSampleValue(columnName: string): string {
+    if (!this.excelPreviewData || !this.excelPreviewData.previewData || this.excelPreviewData.previewData.length === 0) {
+      return '(empty)';
+    }
+    const value = this.excelPreviewData.previewData[0][columnName];
+    return value !== undefined && value !== null && value !== '' ? String(value) : '(empty)';
+  }
+
+  isColumnMapped(columnName: string): boolean {
+    return Object.values(this.columnMapping).includes(columnName);
   }
 }

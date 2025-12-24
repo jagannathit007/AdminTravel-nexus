@@ -544,6 +544,62 @@ async updateUser(userId: string, data: { name: string; mobile_number: string; em
       throw new Error(errorMessage);
     }
   }
+
+  async previewExcelFile(formData: FormData): Promise<any> {
+    try {
+      const token = this.storage.get(common.TOKEN);
+      const formDataHeaders: any[] = [];
+      
+      if (token) {
+        formDataHeaders.push({ 
+          Authorization: `Bearer ${token}`
+        });
+      }
+      
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.PREVIEW_EXCEL_FILE,
+          method: 'POST',
+          isFormData: true
+        },
+        formData,
+        formDataHeaders
+      );
+      return response;
+    } catch (error: any) {
+      console.error('Preview Excel File Error:', error);
+      const errorMessage = error?.error?.message || error?.message || 'Failed to preview Excel file';
+      throw new Error(errorMessage);
+    }
+  }
+
+  async importUserRegistrationsFromExcel(columnMapping: any, filePath: string): Promise<any> {
+    try {
+      const token = this.storage.get(common.TOKEN);
+      const headers: any[] = [];
+      
+      if (token) {
+        headers.push({ Authorization: `Bearer ${token}` });
+      }
+      
+      headers.push({ 'Content-Type': 'application/json' });
+      
+      const response = await this.apiManager.request(
+        {
+          url: apiEndpoints.IMPORT_USER_REGISTRATIONS,
+          method: 'POST',
+          isFormData: false
+        },
+        { columnMapping, filePath },
+        headers
+      );
+      return response;
+    } catch (error: any) {
+      console.error('Import User Registrations Error:', error);
+      const errorMessage = error?.error?.message || error?.message || 'Failed to import user registrations';
+      throw new Error(errorMessage);
+    }
+  }
  
 
   async getUserDetails(userId: string): Promise<any> {

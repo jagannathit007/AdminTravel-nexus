@@ -5,9 +5,26 @@
       <h4 class="mb-0 fw-bold text-white">
         <i class="bi bi-person-plus me-2"></i>DMC Registration Management
       </h4>
-      <button class="btn btn-light rounded-pill px-4" (click)="openRegisterModal()">
-        <i class="bi bi-plus-circle me-2"></i>Register New DMC
-      </button>
+      <div class="d-flex gap-2">
+        <button class="btn btn-success rounded-pill px-4" (click)="triggerFileInput()" [disabled]="importingExcel || previewLoading">
+          <i class="bi bi-file-earmark-excel me-2"></i>
+          <span *ngIf="!importingExcel && !previewLoading">Import from Excel/CSV</span>
+          <span *ngIf="importingExcel || previewLoading">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            <span *ngIf="previewLoading">Loading...</span>
+            <span *ngIf="importingExcel">Importing...</span>
+          </span>
+        </button>
+        <input 
+          type="file" 
+          #fileInput 
+          (change)="onFileSelected($event)" 
+          accept=".xls,.xlsx,.xlsm,.csv" 
+          style="display: none;">
+        <button class="btn btn-light rounded-pill px-4" (click)="openRegisterModal()">
+          <i class="bi bi-plus-circle me-2"></i>Register New DMC
+        </button>
+      </div>
     </div>
     
     <!-- Search and Filter Section -->
@@ -525,6 +542,122 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">
           <i class="bi bi-x-circle me-1"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Excel Preview and Mapping Modal -->
+<div class="modal fade" id="excelPreviewModal" tabindex="-1" aria-labelledby="excelPreviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-gradient-primary text-white">
+        <h5 class="modal-title fw-bold" id="excelPreviewModalLabel">
+          <i class="bi bi-file-earmark-excel me-2"></i>Import Leads from Excel/CSV
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" (click)="closePreviewModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="previewLoading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-3 text-muted">Parsing Excel file...</p>
+        </div>
+
+        <div *ngIf="!previewLoading && excelPreviewData">
+          <div class="alert alert-info mb-4">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Map Your Columns</strong> - Match your Excel columns to CRM fields below. <strong>Required</strong> indicates recommended fields.
+          </div>
+
+          <div class="row">
+            <!-- Column Mapping Section -->
+            <div class="col-md-5 border-end pe-4">
+              <h6 class="fw-bold mb-3">Column Mapping</h6>
+              <div class="mb-3">
+                <small class="text-muted">
+                  <i class="bi bi-file-earmark-text me-1"></i>
+                  {{ excelPreviewData.totalRows }} leads found in Excel file
+                </small>
+              </div>
+
+              <div class="mapping-list" style="max-height: 500px; overflow-y: auto;">
+                <div *ngFor="let field of availableFields" class="mb-3">
+                  <label class="form-label fw-semibold small">
+                    {{ field.label }}
+                    <span *ngIf="field.required" class="text-danger">*</span>
+                  </label>
+                  <ng-select
+                    [items]="excelColumns"
+                    [(ngModel)]="columnMapping[field.key]"
+                    [clearable]="!field.required"
+                    placeholder="-- Select Field to Map --"
+                    class="form-select-sm">
+                  </ng-select>
+                  <small *ngIf="columnMapping[field.key]" class="text-muted d-block mt-1">
+                    Sample: {{ getSampleValue(columnMapping[field.key]) }}
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Data Preview Section -->
+            <div class="col-md-7 ps-4">
+              <h6 class="fw-bold mb-3">Data Preview</h6>
+              <div class="mb-3">
+                <small class="text-muted">
+                  All {{ excelPreviewData.totalRows }} rows from your Excel file
+                </small>
+              </div>
+
+              <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                <table class="table table-sm table-bordered table-hover">
+                  <thead class="table-light sticky-top">
+                    <tr>
+                      <th>#</th>
+                      <th *ngFor="let col of excelColumns" [class.bg-warning]="!isColumnMapped(col)">
+                        {{ col }}
+                        <small *ngIf="!isColumnMapped(col)" class="d-block text-danger">Not Mapped</small>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of excelPreviewData.previewData; let i = index">
+                      <td class="text-muted">{{ i + 1 }}</td>
+                      <td *ngFor="let col of excelColumns">
+                        {{ row[col] || '-' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="mt-2 text-end">
+                <small class="text-muted">Total: {{ excelPreviewData.totalRows }} rows</small>
+                <br>
+                <small class="text-muted">Scroll to see all data →</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal" (click)="closePreviewModal()">
+          <i class="bi bi-x-circle me-1"></i>Cancel
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary rounded-pill" 
+          (click)="importWithMapping()"
+          [disabled]="importingExcel || !excelPreviewData">
+          <span *ngIf="!importingExcel">
+            <i class="bi bi-check-circle me-1"></i>Next: Review Data
+          </span>
+          <span *ngIf="importingExcel">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            Importing...
+          </span>
         </button>
       </div>
     </div>

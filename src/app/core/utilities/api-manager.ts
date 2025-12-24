@@ -40,6 +40,17 @@ export class ApiManager {
             this.http.get<ResponseModel>(config.url, this.setHeaders(headers))
           );
         case 'POST':
+          // Handle FormData - don't set Content-Type header, let browser set it with boundary
+          if (config.isFormData && data instanceof FormData) {
+            const formDataHeaders = headers.filter((h: any) => !h['Content-Type']);
+            return await firstValueFrom(
+              this.http.post<ResponseModel>(
+                config.url,
+                data,
+                this.setHeaders(formDataHeaders)
+              )
+            );
+          }
           return await firstValueFrom(
             this.http.post<ResponseModel>(
               config.url,

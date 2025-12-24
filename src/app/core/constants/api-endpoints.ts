@@ -32,6 +32,8 @@ class ApiEndpoints {
             public GET_STATE_BY_ID: string= `${this.PATH}/getStateById`
         public   UPDATE_STATE: string= `${this.PATH}/updateState`
   public  IMPORT_USERS: string = `${this.PATH}/import`;
+  public PREVIEW_EXCEL_FILE: string = `${this.PATH}/previewExcelFile`;
+  public IMPORT_USER_REGISTRATIONS: string = `${this.PATH}/importUserRegistrations`;
 
       public GET_DASHBOARD_COUNTS: string = `${this.PATH}/getdata/counts`;
       public FORGOT_PASSWORD: string = `${this.PATH}/forgotPassword`;
