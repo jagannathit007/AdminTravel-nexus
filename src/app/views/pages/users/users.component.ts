@@ -795,6 +795,178 @@ export class UsersComponent implements OnInit, AfterViewInit {
     }
   }
 
+  async exportToExcel(): Promise<void> {
+    this.exporting = true;
+    try {
+      // Fetch ALL users by fetching all pages
+      let allUsers: any[] = [];
+      let currentPage = 1;
+      let hasMore = true;
+      const pageSize = 100; // Fetch 100 at a time
+
+      while (hasMore) {
+        const response = await this.authService.getUsers({
+          search: this.payload.search || '',
+          page: currentPage,
+          limit: pageSize,
+          chapter: this.payload.chapter
+        });
+
+        if (response && response.docs && response.docs.length > 0) {
+          allUsers = allUsers.concat(response.docs);
+          hasMore = response.docs.length === pageSize && currentPage < response.totalPages;
+          currentPage++;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      if (allUsers.length === 0) {
+        swalHelper.showToast('No data to export', 'warning');
+        return;
+      }
+
+      // Prepare data for export
+      const exportData = allUsers.map((user: any, index: number) => ({
+        'Sr. No.': index + 1,
+        'Name': user.name || 'N/A',
+        'Email': user.email || 'N/A',
+        'Mobile Number': user.mobile_number || 'N/A',
+        'Business Name': user.business_name || 'N/A',
+        'Business Type': user.business?.[0]?.business_type || 'N/A',
+        'City': user.city || 'N/A',
+        'State': user.state || 'N/A',
+        'Country': user.country || 'N/A',
+        'DMC Specializations': user.dmc_specializations?.join(', ') || 'N/A',
+        'Services Offered': user.services_offered?.join(', ') || 'N/A',
+        'Regions': user.regions?.map((r: any) => r.name).join(', ') || 'N/A',
+        'Status': user.isActive !== false ? 'Active' : 'Inactive',
+        'Member': user.isMember ? 'Yes' : 'No',
+        'Created At': user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'
+      }));
+
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'All Members');
+
+      // Set column widths
+      const columnWidths = [
+        { wch: 8 },   // Sr. No.
+        { wch: 25 },  // Name
+        { wch: 30 },  // Email
+        { wch: 15 },  // Mobile Number
+        { wch: 30 },  // Business Name
+        { wch: 12 },  // Business Type
+        { wch: 15 },  // City
+        { wch: 15 },  // State
+        { wch: 15 },  // Country
+        { wch: 30 },  // DMC Specializations
+        { wch: 30 },  // Services Offered
+        { wch: 30 },  // Regions
+        { wch: 10 },  // Status
+        { wch: 10 },  // Member
+        { wch: 15 }   // Created At
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Generate filename with current date
+      const fileName = `All_Members_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Write file
+      XLSX.writeFile(workbook, fileName);
+      
+      swalHelper.showToast(`Excel file exported successfully with ${allUsers.length} records`, 'success');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      swalHelper.showToast('Failed to export to Excel', 'error');
+    } finally {
+      this.exporting = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  async exportToCSV(): Promise<void> {
+    this.exporting = true;
+    try {
+      // Fetch ALL users by fetching all pages
+      let allUsers: any[] = [];
+      let currentPage = 1;
+      let hasMore = true;
+      const pageSize = 100; // Fetch 100 at a time
+
+      while (hasMore) {
+        const response = await this.authService.getUsers({
+          search: this.payload.search || '',
+          page: currentPage,
+          limit: pageSize,
+          chapter: this.payload.chapter
+        });
+
+        if (response && response.docs && response.docs.length > 0) {
+          allUsers = allUsers.concat(response.docs);
+          hasMore = response.docs.length === pageSize && currentPage < response.totalPages;
+          currentPage++;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      if (allUsers.length === 0) {
+        swalHelper.showToast('No data to export', 'warning');
+        return;
+      }
+
+      // Prepare data for export
+      const exportData = allUsers.map((user: any, index: number) => ({
+        'Sr. No.': index + 1,
+        'Name': user.name || 'N/A',
+        'Email': user.email || 'N/A',
+        'Mobile Number': user.mobile_number || 'N/A',
+        'Business Name': user.business_name || 'N/A',
+        'Business Type': user.business?.[0]?.business_type || 'N/A',
+        'City': user.city || 'N/A',
+        'State': user.state || 'N/A',
+        'Country': user.country || 'N/A',
+        'DMC Specializations': user.dmc_specializations?.join(', ') || 'N/A',
+        'Services Offered': user.services_offered?.join(', ') || 'N/A',
+        'Regions': user.regions?.map((r: any) => r.name).join(', ') || 'N/A',
+        'Status': user.isActive !== false ? 'Active' : 'Inactive',
+        'Member': user.isMember ? 'Yes' : 'No',
+        'Created At': user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'
+      }));
+
+      // Create worksheet
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+      // Convert to CSV
+      const csv = XLSX.utils.sheet_to_csv(worksheet);
+
+      // Create blob and download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      // Generate filename with current date
+      const fileName = `All_Members_${new Date().toISOString().split('T')[0]}.csv`;
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', fileName);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      swalHelper.showToast(`CSV file exported successfully with ${allUsers.length} records`, 'success');
+    } catch (error) {
+      console.error('Error exporting to CSV:', error);
+      swalHelper.showToast('Failed to export to CSV', 'error');
+    } finally {
+      this.exporting = false;
+      this.cdr.detectChanges();
+    }
+  }
+
   formatDate(dateString: string): string {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString();

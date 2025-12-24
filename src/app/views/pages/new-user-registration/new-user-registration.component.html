@@ -550,7 +550,7 @@
 
 <!-- Excel Preview and Mapping Modal -->
 <div class="modal fade" id="excelPreviewModal" tabindex="-1" aria-labelledby="excelPreviewModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+  <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-gradient-primary text-white">
         <h5 class="modal-title fw-bold" id="excelPreviewModalLabel">
@@ -572,9 +572,9 @@
             <strong>Map Your Columns</strong> - Match your Excel columns to CRM fields below. <strong>Required</strong> indicates recommended fields.
           </div>
 
-          <div class="row">
+          <div class="row g-4">
             <!-- Column Mapping Section -->
-            <div class="col-md-5 border-end pe-4">
+            <div class="col-lg-4 col-md-5 border-end pe-4">
               <h6 class="fw-bold mb-3">Column Mapping</h6>
               <div class="mb-3">
                 <small class="text-muted">
@@ -583,7 +583,7 @@
                 </small>
               </div>
 
-              <div class="mapping-list" style="max-height: 500px; overflow-y: auto;">
+              <div class="mapping-list" style="max-height: 70vh; overflow-y: auto;">
                 <div *ngFor="let field of availableFields" class="mb-3">
                   <label class="form-label fw-semibold small">
                     {{ field.label }}
@@ -604,7 +604,7 @@
             </div>
 
             <!-- Data Preview Section -->
-            <div class="col-md-7 ps-4">
+            <div class="col-lg-8 col-md-7 ps-4">
               <h6 class="fw-bold mb-3">Data Preview</h6>
               <div class="mb-3">
                 <small class="text-muted">
@@ -612,7 +612,7 @@
                 </small>
               </div>
 
-              <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+              <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
                 <table class="table table-sm table-bordered table-hover">
                   <thead class="table-light sticky-top">
                     <tr>
