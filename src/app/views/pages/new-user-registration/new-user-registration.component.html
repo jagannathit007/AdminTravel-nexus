@@ -112,10 +112,10 @@
                   <span class="badge bg-info me-1 region-tooltip" 
                         [attr.data-bs-toggle]="'tooltip'" 
                         [attr.data-bs-placement]="'top'"
-                        [attr.title]="region.name + ' - Countries: ' + (region.countries?.join(', ') || 'N/A')">
+                        [attr.title]="region.name + ' - Countries: ' + (region.countries.join(', ') || 'N/A')">
                     {{region.name}}
                   </span>
-                  <small class="text-muted d-block">{{region.countries?.[0] || 'N/A'}}</small>
+                  <small class="text-muted d-block">{{region.countries[0] || 'N/A'}}</small>
                 </div>
                 <span *ngIf="registration.regions && registration.regions.length > 1" 
                       class="text-muted region-more-tooltip"
@@ -436,7 +436,7 @@
                   <div class="col-12">
                     <label class="form-label text-muted small mb-1">Business Type</label>
                     <p class="mb-0">
-                      <span class="badge bg-primary">{{selectedUserDetails?.business?.[0]?.business_type || 'N/A'}}</span>
+                      <span class="badge bg-primary">{{selectedUserDetails.business?.[0]?.business_type || 'N/A'}}</span>
                     </p>
                   </div>
                 </div>

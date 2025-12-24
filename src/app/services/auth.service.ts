@@ -2636,9 +2636,9 @@ export class RegionService {
                   );
       
                   return response.data || response;
-              } catch (error) {
+              } catch (error : any) {
                   console.error('API Error:', error);
-                  swalHelper.showToast('Failed to fetch OTP records', 'error');
+            swalHelper.showToast(error?.error?.message, 'warning');
                   throw error;
               }
           }

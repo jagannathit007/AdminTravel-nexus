@@ -292,6 +292,11 @@ $submenu-border: rgba(245, 222, 179, 0.1);
       transform: rotate(-45deg) translate(6px, -6px) !important;
     }
   }
+
+  // Hide hamburger menu on large screens and above
+  @media (min-width: 992px) {
+    display: none !important;
+  }
 }
 
 // ============================================

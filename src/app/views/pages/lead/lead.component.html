@@ -89,7 +89,7 @@
               </div>
             </td>
             <td class="py-3">
-              <span class="badge bg-info">{{lead.region?.name || 'N/A'}}</span>
+              <span class="badge bg-info">{{lead.region.name || 'N/A'}}</span>
               <div class="text-muted small mt-1" *ngIf="lead.region?.code">{{lead.region.code}}</div>
             </td>
             <td class="py-3">
@@ -184,7 +184,7 @@
                 <span class="badge rounded-pill" [ngClass]="getStatusClass(selectedLead.status)">
                   {{getStatusLabel(selectedLead.status)}}
                 </span>
-                <span class="badge bg-info">{{selectedLead.region?.name || 'N/A'}}</span>
+                <span class="badge bg-info">{{selectedLead.region.name || 'N/A'}}</span>
                 <span class="badge bg-success">{{formatCurrency(selectedLead.budget)}}</span>
               </div>
             </div>
@@ -274,7 +274,7 @@
                     <i class="bi bi-map me-2"></i>Region & Budget
                   </h6>
                   <div class="mb-2">
-                    <strong>Region:</strong> {{selectedLead.region?.name || 'N/A'}}
+                    <strong>Region:</strong> {{selectedLead.region.name || 'N/A'}}
                     <span class="badge bg-info ms-2" *ngIf="selectedLead.region?.code">{{selectedLead.region.code}}</span>
                   </div>
                   <div class="mb-2" *ngIf="hasCountries(selectedLead)">
@@ -333,7 +333,7 @@
                       <td>
                         <div class="d-flex align-items-center">
                           <div *ngIf="assignment.userId?.profilePic" class="me-2">
-                            <img [src]="getImageUrl(assignment.userId?.profilePic || '')" 
+                            <img [src]="getImageUrl(assignment.userId.profilePic || '')" 
                                  alt="Profile"
                                  class="rounded-circle"
                                  style="width: 35px; height: 35px; object-fit: cover;"

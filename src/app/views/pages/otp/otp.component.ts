@@ -68,9 +68,9 @@ export class OtpRecordsComponent implements OnInit {
             const response = await this.otpService.getOtpRecords(requestData);
             this.otpRecords = response;
             this.cdr.detectChanges();
-        } catch (error) {
+        } catch (error : any) {
             console.error('Error fetching OTP records:', error);
-            swalHelper.showToast('Failed to fetch OTP records', 'error');
+            swalHelper.showToast(error?.error?.message, 'warning');
         } finally {
             this.loading = false;
         }

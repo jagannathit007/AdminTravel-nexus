@@ -144,33 +144,33 @@
               </div>
             </td>
             <td class="py-3">
-              <span class="badge bg-info">{{ask.region?.name || 'N/A'}}</span>
+              <span class="badge bg-info">{{ask.region.name || 'N/A'}}</span>
               <div class="text-muted small mt-1" *ngIf="ask.region?.code">{{ask.region.code}}</div>
             </td>
             <td class="py-3">
               <div class="fw-bold text-success">
-                {{formatCurrency(ask.budget?.min)}} - {{formatCurrency(ask.budget?.max)}}
+                {{formatCurrency(ask.budget.min)}} - {{formatCurrency(ask.budget.max)}}
               </div>
             </td>
             <td class="py-3">
               <div class="small">
                 <div class="text-muted mb-1">
-                  <strong>From:</strong> {{formatDate(ask.travelDates?.start)}}
+                  <strong>From:</strong> {{formatDate(ask.travelDates.start)}}
                 </div>
                 <div class="text-muted">
-                  <strong>To:</strong> {{formatDate(ask.travelDates?.end)}}
+                  <strong>To:</strong> {{formatDate(ask.travelDates.end)}}
                 </div>
                 <div class="text-info mt-1">
                   <i class="bi bi-calendar-check me-1"></i>
-                  {{calculateDuration(ask.travelDates?.start, ask.travelDates?.end)}} days
+                  {{calculateDuration(ask.travelDates.start, ask.travelDates.end)}} days
                 </div>
               </div>
             </td>
             <td class="py-3">
               <div class="small">
-                <div>Adults: {{ask.paxCount?.adults || 0}}</div>
-                <div>Children: {{ask.paxCount?.children || 0}}</div>
-                <div>Infants: {{ask.paxCount?.infants || 0}}</div>
+                <div>Adults: {{ask.paxCount.adults || 0}}</div>
+                <div>Children: {{ask.paxCount.children || 0}}</div>
+                <div>Infants: {{ask.paxCount.infants || 0}}</div>
                 <div class="fw-bold mt-1">Total: {{getTotalPax(ask.paxCount)}}</div>
               </div>
             </td>
@@ -186,7 +186,7 @@
             </td>
             <td class="py-3">
               <span class="badge bg-info rounded-pill">
-                {{ask.leads?.length || 0}} {{(ask.leads?.length || 0) === 1 ? 'Lead' : 'Leads'}}
+                {{ask.leads.length || 0}} {{(ask.leads.length || 0) === 1 ? 'Lead' : 'Leads'}}
               </span>
             </td>
             <td class="py-3">
@@ -255,7 +255,7 @@
                 <span class="badge rounded-pill" [ngClass]="selectedAsk.isPublic ? 'bg-primary' : 'bg-secondary'">
                   {{selectedAsk.isPublic ? 'Public' : 'Regional'}}
                 </span>
-                <span class="badge bg-info">{{selectedAsk.region?.name || 'N/A'}}</span>
+                <span class="badge bg-info">{{selectedAsk.region.name || 'N/A'}}</span>
               </div>
             </div>
             <div class="col-md-4 text-end">
@@ -317,7 +317,7 @@
                     <i class="bi bi-map me-2"></i>Region & Travel Details
                   </h6>
                   <div class="mb-2">
-                    <strong>Region:</strong> {{selectedAsk.region?.name || 'N/A'}}
+                    <strong>Region:</strong> {{selectedAsk.region.name || 'N/A'}}
                     <span class="badge bg-info ms-2" *ngIf="selectedAsk.region?.code">{{selectedAsk.region.code}}</span>
                   </div>
                   <div class="mb-2" *ngIf="hasCountries(selectedAsk)">
@@ -347,17 +347,17 @@
                   <div class="row">
                     <div class="col-6">
                       <strong>Start Date:</strong>
-                      <div class="text-muted">{{formatDate(selectedAsk.travelDates?.start)}}</div>
+                      <div class="text-muted">{{formatDate(selectedAsk.travelDates.start)}}</div>
                     </div>
                     <div class="col-6">
                       <strong>End Date:</strong>
-                      <div class="text-muted">{{formatDate(selectedAsk.travelDates?.end)}}</div>
+                      <div class="text-muted">{{formatDate(selectedAsk.travelDates.end)}}</div>
                     </div>
                   </div>
                   <div class="mt-2">
                     <span class="badge bg-info">
                       <i class="bi bi-calendar-check me-1"></i>
-                      Duration: {{calculateDuration(selectedAsk.travelDates?.start, selectedAsk.travelDates?.end)}} days
+                      Duration: {{calculateDuration(selectedAsk.travelDates.start, selectedAsk.travelDates.end)}} days
                     </span>
                   </div>
                 </div>
@@ -373,15 +373,15 @@
                   <div class="row">
                     <div class="col-4">
                       <strong>Adults:</strong>
-                      <div class="fw-bold text-primary">{{selectedAsk.paxCount?.adults || 0}}</div>
+                      <div class="fw-bold text-primary">{{selectedAsk.paxCount.adults || 0}}</div>
                     </div>
                     <div class="col-4">
                       <strong>Children:</strong>
-                      <div class="fw-bold text-info">{{selectedAsk.paxCount?.children || 0}}</div>
+                      <div class="fw-bold text-info">{{selectedAsk.paxCount.children || 0}}</div>
                     </div>
                     <div class="col-4">
                       <strong>Infants:</strong>
-                      <div class="fw-bold text-secondary">{{selectedAsk.paxCount?.infants || 0}}</div>
+                      <div class="fw-bold text-secondary">{{selectedAsk.paxCount.infants || 0}}</div>
                     </div>
                   </div>
                   <div class="mt-2 pt-2 border-top">
@@ -402,16 +402,16 @@
                   </h6>
                   <div class="mb-2">
                     <strong>Minimum Budget:</strong>
-                    <div class="fw-bold text-success">{{formatCurrency(selectedAsk.budget?.min)}}</div>
+                    <div class="fw-bold text-success">{{formatCurrency(selectedAsk.budget.min)}}</div>
                   </div>
                   <div class="mb-2">
                     <strong>Maximum Budget:</strong>
-                    <div class="fw-bold text-success">{{formatCurrency(selectedAsk.budget?.max)}}</div>
+                    <div class="fw-bold text-success">{{formatCurrency(selectedAsk.budget.max)}}</div>
                   </div>
                   <div class="mt-2 pt-2 border-top">
                     <strong>Budget Range:</strong>
                     <div class="fw-bold text-primary">
-                      {{formatCurrency(selectedAsk.budget?.min)}} - {{formatCurrency(selectedAsk.budget?.max)}}
+                      {{formatCurrency(selectedAsk.budget.min)}} - {{formatCurrency(selectedAsk.budget.max)}}
                     </div>
                   </div>
                 </div>
