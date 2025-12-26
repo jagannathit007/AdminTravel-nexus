@@ -266,31 +266,45 @@
                 <label for="country" class="form-label form-label-sm">Country <span class="text-danger">*</span></label>
                 <ng-select id="country" [items]="countries" bindLabel="name" bindValue="name" placeholder="Select country"
                   [(ngModel)]="registerForm.country" name="country" required [loading]="countriesLoading"
-                  (blur)="onFieldBlur('country')" [class.is-invalid]="validationErrors.country" class="ng-select-sm">
+                  (blur)="onFieldBlur('country')" (change)="onCountryChange()"
+                  [class.is-invalid]="validationErrors.country" class="ng-select-sm"
+                  [disabled]="!countriesLoaded || (registerForm.regions && registerForm.regions.length === 0)">
                 </ng-select>
                 <div class="invalid-feedback" *ngIf="validationErrors.country">
                   {{ validationErrors.country }}
                 </div>
+                <small class="text-muted" *ngIf="!countriesLoaded || (registerForm.regions && registerForm.regions.length === 0)">
+                  Please select regions first
+                </small>
               </div>
               <div class="col-md-4 mb-2">
                 <label for="state" class="form-label form-label-sm">State <span class="text-danger">*</span></label>
                 <ng-select id="state" [items]="states" bindLabel="name" bindValue="name" placeholder="Select state"
                   [(ngModel)]="registerForm.state" name="state" required [loading]="statesLoading"
-                  (blur)="onFieldBlur('state')" [class.is-invalid]="validationErrors.state" class="ng-select-sm">
+                  (blur)="onFieldBlur('state')" (change)="onStateChange()"
+                  [class.is-invalid]="validationErrors.state" class="ng-select-sm"
+                  [disabled]="!statesLoaded || !registerForm.country">
                 </ng-select>
                 <div class="invalid-feedback" *ngIf="validationErrors.state">
                   {{ validationErrors.state }}
                 </div>
+                <small class="text-muted" *ngIf="!statesLoaded || !registerForm.country">
+                  Please select country first
+                </small>
               </div>
               <div class="col-md-4 mb-2">
                 <label for="city" class="form-label form-label-sm">City <span class="text-danger">*</span></label>
                 <ng-select id="city" [items]="cities" bindLabel="name" bindValue="name" placeholder="Select city"
                   [(ngModel)]="registerForm.city" name="city" required [loading]="citiesLoading"
-                  (blur)="onFieldBlur('city')" [class.is-invalid]="validationErrors.city" class="ng-select-sm">
+                  (blur)="onFieldBlur('city')" [class.is-invalid]="validationErrors.city" class="ng-select-sm"
+                  [disabled]="!citiesLoaded || !registerForm.state">
                 </ng-select>
                 <div class="invalid-feedback" *ngIf="validationErrors.city">
                   {{ validationErrors.city }}
                 </div>
+                <small class="text-muted" *ngIf="!citiesLoaded || !registerForm.state">
+                  Please select state first
+                </small>
               </div>
             </div>
           </div>
@@ -319,12 +333,13 @@
                 <ng-select id="regions" [items]="regions" bindLabel="name" bindValue="_id" 
                   placeholder="Select regions" [(ngModel)]="registerForm.regions" name="regions" 
                   [multiple]="true" required [loading]="regionsLoading"
-                  (blur)="onFieldBlur('regions')" [class.is-invalid]="validationErrors.regions" class="ng-select-sm">
+                  (blur)="onFieldBlur('regions')" (change)="onRegionsChange()"
+                  [class.is-invalid]="validationErrors.regions" class="ng-select-sm">
                 </ng-select>
                 <div class="invalid-feedback" *ngIf="validationErrors.regions">
                   {{ validationErrors.regions }}
                 </div>
-                <small class="text-muted">Select all regions where you operate</small>
+                <small class="text-muted">Select all regions where you operate (this will filter countries, states, and cities)</small>
               </div>
             </div>
             <div class="row">

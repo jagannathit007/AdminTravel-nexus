@@ -193,9 +193,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.fetchChapters();
     this.fetchUsers();
-    this.fetchCountries();
-    this.fetchStates();
-    this.fetchCities();
+    // Only fetch regions initially - countries, states, cities will be fetched based on selections
     this.fetchRegions();
   }
 
@@ -521,7 +519,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
     }
   }
 
-  editUser(user: ExtendedUser): void {
+  async editUser(user: ExtendedUser): Promise<void> {
     this.selectedUser = user;
     this.editForm = {
       name: user.name || '',
@@ -550,6 +548,24 @@ export class UsersComponent implements OnInit, AfterViewInit {
       services_offered: ''
     };
 
+    // Fetch data based on existing user data
+    const regionIds = this.editForm.regions && this.editForm.regions.length > 0 
+      ? this.editForm.regions 
+      : undefined;
+    
+    // Fetch countries based on regions
+    await this.fetchCountries(regionIds);
+    
+    // If country exists, fetch states
+    if (this.editForm.country) {
+      await this.fetchStates(this.editForm.country, regionIds);
+    }
+    
+    // If state exists, fetch cities
+    if (this.editForm.state) {
+      await this.fetchCities(this.editForm.state, regionIds);
+    }
+
     if (this.editUserModal) {
       this.editUserModal.show();
     } else {
@@ -575,6 +591,71 @@ export class UsersComponent implements OnInit, AfterViewInit {
     } else {
       $('#editUserModal').modal('hide');
     }
+    // Clear dependent dropdowns when modal closes
+    this.countries = [];
+    this.states = [];
+    this.cities = [];
+    this.countriesLoaded = false;
+    this.statesLoaded = false;
+    this.citiesLoaded = false;
+  }
+
+  // Cascading dropdown handlers
+  onEditRegionsChange(): void {
+    // When regions change, fetch countries based on selected regions
+    if (this.editForm.regions && this.editForm.regions.length > 0) {
+      this.fetchCountries(this.editForm.regions);
+      // Clear dependent fields if they don't match
+      // Note: We don't clear country/state/city automatically in edit mode
+      // to preserve user's existing selection if it's still valid
+    } else {
+      // If no regions selected, clear countries
+      this.countries = [];
+      this.countriesLoaded = false;
+    }
+    this.cdr.detectChanges();
+  }
+
+  onEditCountryChange(): void {
+    // When country changes, fetch states based on selected country and regions
+    if (this.editForm.country) {
+      const regionIds = this.editForm.regions && this.editForm.regions.length > 0 
+        ? this.editForm.regions 
+        : undefined;
+      this.fetchStates(this.editForm.country, regionIds);
+      // Clear dependent fields
+      this.editForm.state = '';
+      this.editForm.city = '';
+      this.cities = [];
+      this.citiesLoaded = false;
+    } else {
+      // If no country selected, clear states
+      this.states = [];
+      this.statesLoaded = false;
+      this.editForm.state = '';
+      this.editForm.city = '';
+      this.cities = [];
+      this.citiesLoaded = false;
+    }
+    this.cdr.detectChanges();
+  }
+
+  onEditStateChange(): void {
+    // When state changes, fetch cities based on selected state and regions
+    if (this.editForm.state) {
+      const regionIds = this.editForm.regions && this.editForm.regions.length > 0 
+        ? this.editForm.regions 
+        : undefined;
+      this.fetchCities(this.editForm.state, regionIds);
+      // Clear dependent field
+      this.editForm.city = '';
+    } else {
+      // If no state selected, clear cities
+      this.cities = [];
+      this.citiesLoaded = false;
+      this.editForm.city = '';
+    }
+    this.cdr.detectChanges();
   }
 
   validateEditForm(): boolean {
@@ -638,15 +719,22 @@ export class UsersComponent implements OnInit, AfterViewInit {
     return isValid;
   }
 
-  async fetchCountries(): Promise<void> {
+  async fetchCountries(regionIds?: string[]): Promise<void> {
     this.countriesLoading = true;
     this.countriesLoaded = false;
     try {
-      const response = await this.countryService.getAllCountries({
+      const requestParams: any = {
         page: 1,
         limit: 1000,
         search: ''
-      });
+      };
+      
+      // If regions are selected, filter countries by those regions
+      if (regionIds && regionIds.length > 0) {
+        requestParams.regions = regionIds;
+      }
+      
+      const response = await this.countryService.getAllCountries(requestParams);
       this.countries = response.docs;
       this.countriesLoaded = true;
     } catch (error) {
@@ -658,15 +746,27 @@ export class UsersComponent implements OnInit, AfterViewInit {
     }
   }
 
-  async fetchStates(): Promise<void> {
+  async fetchStates(countryNameOrId?: string, regionIds?: string[]): Promise<void> {
     this.statesLoading = true;
     this.statesLoaded = false;
     try {
-      const response = await this.stateService.getAllStates({
+      const requestParams: any = {
         page: 1,
         limit: 1000,
         search: ''
-      });
+      };
+      
+      // If country is selected, filter states by that country
+      if (countryNameOrId) {
+        requestParams.country = countryNameOrId;
+      }
+      
+      // If regions are selected, filter states by those regions
+      if (regionIds && regionIds.length > 0) {
+        requestParams.regions = regionIds;
+      }
+      
+      const response = await this.stateService.getAllStates(requestParams);
       this.states = response.docs;
       this.statesLoaded = true;
     } catch (error) {
@@ -678,15 +778,27 @@ export class UsersComponent implements OnInit, AfterViewInit {
     }
   }
 
-  async fetchCities(): Promise<void> {
+  async fetchCities(stateNameOrId?: string, regionIds?: string[]): Promise<void> {
     this.citiesLoading = true;
     this.citiesLoaded = false;
     try {
-      const response = await this.cityService.getAllCities({
+      const requestParams: any = {
         page: 1,
         limit: 1000,
         search: ''
-      });
+      };
+      
+      // If state is selected, filter cities by that state
+      if (stateNameOrId) {
+        requestParams.state = stateNameOrId;
+      }
+      
+      // If regions are selected, filter cities by those regions
+      if (regionIds && regionIds.length > 0) {
+        requestParams.regions = regionIds;
+      }
+      
+      const response = await this.cityService.getAllCities(requestParams);
       this.cities = response.docs;
       this.citiesLoaded = true;
     } catch (error) {

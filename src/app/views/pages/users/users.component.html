@@ -377,21 +377,39 @@
             <div class="row">
               <div class="col-md-4 mb-3">
                 <label for="editCountry" class="form-label">Country <span class="text-danger">*</span></label>
-                <ng-select id="editCountry" [items]="countries" bindLabel="name" bindValue="name" placeholder="Select country" [(ngModel)]="editForm.country" name="country" required [loading]="countriesLoading" [class.is-invalid]="editError.country">
+                <ng-select id="editCountry" [items]="countries" bindLabel="name" bindValue="name" placeholder="Select country" 
+                  [(ngModel)]="editForm.country" name="country" required [loading]="countriesLoading" 
+                  (change)="onEditCountryChange()" [class.is-invalid]="editError.country"
+                  [disabled]="!countriesLoaded || (editForm.regions && editForm.regions.length === 0)">
                 </ng-select>
                 <div class="invalid-feedback" *ngIf="editError.country">{{ editError.country }}</div>
+                <small class="text-muted" *ngIf="!countriesLoaded || (editForm.regions && editForm.regions.length === 0)">
+                  Please select regions first
+                </small>
               </div>
               <div class="col-md-4 mb-3">
                 <label for="editState" class="form-label">State <span class="text-danger">*</span></label>
-                <ng-select id="editState" [items]="states" bindLabel="name" bindValue="name" placeholder="Select state" [(ngModel)]="editForm.state" name="state" required [loading]="statesLoading" [class.is-invalid]="editError.state">
+                <ng-select id="editState" [items]="states" bindLabel="name" bindValue="name" placeholder="Select state" 
+                  [(ngModel)]="editForm.state" name="state" required [loading]="statesLoading" 
+                  (change)="onEditStateChange()" [class.is-invalid]="editError.state"
+                  [disabled]="!statesLoaded || !editForm.country">
                 </ng-select>
                 <div class="invalid-feedback" *ngIf="editError.state">{{ editError.state }}</div>
+                <small class="text-muted" *ngIf="!statesLoaded || !editForm.country">
+                  Please select country first
+                </small>
               </div>
               <div class="col-md-4 mb-3">
                 <label for="editCity" class="form-label">City <span class="text-danger">*</span></label>
-                <ng-select id="editCity" [items]="cities" bindLabel="name" bindValue="name" placeholder="Select city" [(ngModel)]="editForm.city" name="city" required [loading]="citiesLoading" [class.is-invalid]="editError.city">
+                <ng-select id="editCity" [items]="cities" bindLabel="name" bindValue="name" placeholder="Select city" 
+                  [(ngModel)]="editForm.city" name="city" required [loading]="citiesLoading" 
+                  [class.is-invalid]="editError.city"
+                  [disabled]="!citiesLoaded || !editForm.state">
                 </ng-select>
                 <div class="invalid-feedback" *ngIf="editError.city">{{ editError.city }}</div>
+                <small class="text-muted" *ngIf="!citiesLoaded || !editForm.state">
+                  Please select state first
+                </small>
               </div>
             </div>
           </div>
@@ -412,10 +430,12 @@
             <div class="row">
               <div class="col-12 mb-3">
                 <label for="editRegions" class="form-label">Operating Regions</label>
-                <ng-select id="editRegions" [items]="regions" bindLabel="name" bindValue="_id" placeholder="Select regions" [(ngModel)]="editForm.regions" name="regions" [multiple]="true" [loading]="regionsLoading" [class.is-invalid]="editError.regions">
+                <ng-select id="editRegions" [items]="regions" bindLabel="name" bindValue="_id" placeholder="Select regions" 
+                  [(ngModel)]="editForm.regions" name="regions" [multiple]="true" [loading]="regionsLoading" 
+                  (change)="onEditRegionsChange()" [class.is-invalid]="editError.regions">
                 </ng-select>
                 <div class="invalid-feedback" *ngIf="editError.regions">{{ editError.regions }}</div>
-                <small class="text-muted">Select all regions where you operate</small>
+                <small class="text-muted">Select all regions where you operate (this will filter countries, states, and cities)</small>
               </div>
             </div>
             <div class="row">

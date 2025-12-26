@@ -214,9 +214,7 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    this.fetchCountries();
-    this.fetchStates();
-    this.fetchCities();
+    // Only fetch regions initially - countries, states, cities will be fetched based on selections
     this.fetchRegions();
     this.fetchRegistrations();
   }
@@ -238,15 +236,22 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     }, 300);
   }
 
-  async fetchCountries(): Promise<void> {
+  async fetchCountries(regionIds?: string[]): Promise<void> {
     this.countriesLoading = true;
     this.countriesLoaded = false;
     try {
-      const response = await this.countryService.getAllCountries({
+      const requestParams: any = {
         page: 1,
         limit: 1000,
         search: ''
-      });
+      };
+      
+      // If regions are selected, filter countries by those regions
+      if (regionIds && regionIds.length > 0) {
+        requestParams.regions = regionIds;
+      }
+      
+      const response = await this.countryService.getAllCountries(requestParams);
       this.countries = response.docs;
       this.countriesLoaded = true;
     } catch (error) {
@@ -258,15 +263,27 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     }
   }
 
-  async fetchStates(): Promise<void> {
+  async fetchStates(countryNameOrId?: string, regionIds?: string[]): Promise<void> {
     this.statesLoading = true;
     this.statesLoaded = false;
     try {
-      const response = await this.stateService.getAllStates({
+      const requestParams: any = {
         page: 1,
         limit: 1000,
         search: ''
-      });
+      };
+      
+      // If country is selected, filter states by that country
+      if (countryNameOrId) {
+        requestParams.country = countryNameOrId;
+      }
+      
+      // If regions are selected, filter states by those regions
+      if (regionIds && regionIds.length > 0) {
+        requestParams.regions = regionIds;
+      }
+      
+      const response = await this.stateService.getAllStates(requestParams);
       this.states = response.docs;
       this.statesLoaded = true;
     } catch (error) {
@@ -278,15 +295,27 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     }
   }
 
-  async fetchCities(): Promise<void> {
+  async fetchCities(stateNameOrId?: string, regionIds?: string[]): Promise<void> {
     this.citiesLoading = true;
     this.citiesLoaded = false;
     try {
-      const response = await this.cityService.getAllCities({
+      const requestParams: any = {
         page: 1,
         limit: 1000,
         search: ''
-      });
+      };
+      
+      // If state is selected, filter cities by that state
+      if (stateNameOrId) {
+        requestParams.state = stateNameOrId;
+      }
+      
+      // If regions are selected, filter cities by those regions
+      if (regionIds && regionIds.length > 0) {
+        requestParams.regions = regionIds;
+      }
+      
+      const response = await this.cityService.getAllCities(requestParams);
       this.cities = response.docs;
       this.citiesLoaded = true;
     } catch (error) {
@@ -634,6 +663,76 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     }
   }
 
+  // Cascading dropdown handlers
+  onRegionsChange(): void {
+    // When regions change, fetch countries based on selected regions
+    if (this.registerForm.regions && this.registerForm.regions.length > 0) {
+      this.fetchCountries(this.registerForm.regions);
+      // Clear dependent fields
+      this.registerForm.country = '';
+      this.registerForm.state = '';
+      this.registerForm.city = '';
+      this.states = [];
+      this.cities = [];
+      this.statesLoaded = false;
+      this.citiesLoaded = false;
+    } else {
+      // If no regions selected, clear countries
+      this.countries = [];
+      this.countriesLoaded = false;
+      this.registerForm.country = '';
+      this.registerForm.state = '';
+      this.registerForm.city = '';
+      this.states = [];
+      this.cities = [];
+      this.statesLoaded = false;
+      this.citiesLoaded = false;
+    }
+    this.cdr.detectChanges();
+  }
+
+  onCountryChange(): void {
+    // When country changes, fetch states based on selected country and regions
+    if (this.registerForm.country) {
+      const regionIds = this.registerForm.regions && this.registerForm.regions.length > 0 
+        ? this.registerForm.regions 
+        : undefined;
+      this.fetchStates(this.registerForm.country, regionIds);
+      // Clear dependent fields
+      this.registerForm.state = '';
+      this.registerForm.city = '';
+      this.cities = [];
+      this.citiesLoaded = false;
+    } else {
+      // If no country selected, clear states
+      this.states = [];
+      this.statesLoaded = false;
+      this.registerForm.state = '';
+      this.registerForm.city = '';
+      this.cities = [];
+      this.citiesLoaded = false;
+    }
+    this.cdr.detectChanges();
+  }
+
+  onStateChange(): void {
+    // When state changes, fetch cities based on selected state and regions
+    if (this.registerForm.state) {
+      const regionIds = this.registerForm.regions && this.registerForm.regions.length > 0 
+        ? this.registerForm.regions 
+        : undefined;
+      this.fetchCities(this.registerForm.state, regionIds);
+      // Clear dependent field
+      this.registerForm.city = '';
+    } else {
+      // If no state selected, clear cities
+      this.cities = [];
+      this.citiesLoaded = false;
+      this.registerForm.city = '';
+    }
+    this.cdr.detectChanges();
+  }
+
   async registerUser(): Promise<void> {
     try {
       this.markAllRequiredFieldsAsTouched();
@@ -868,6 +967,14 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       dmc_specializations: false,
       services_offered: false
     };
+
+    // Clear dependent dropdowns
+    this.countries = [];
+    this.states = [];
+    this.cities = [];
+    this.countriesLoaded = false;
+    this.statesLoaded = false;
+    this.citiesLoaded = false;
   }
 
   showModal(): void {

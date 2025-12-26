@@ -106,7 +106,7 @@ export class CountryService {
     }
   };
 
-  async getAllCountries(data: { page: number; limit: number; search: string }): Promise<CountryResponse> {
+  async getAllCountries(data: { page: number; limit: number; search?: string; regions?: string | string[] }): Promise<CountryResponse> {
     try {
       this.getHeaders();
       
@@ -114,6 +114,10 @@ export class CountryService {
       let queryParams = `?page=${data.page}&limit=${data.limit}`;
       if (data.search) {
         queryParams += `&search=${encodeURIComponent(data.search)}`;
+      }
+      if (data.regions) {
+        const regionsParam = Array.isArray(data.regions) ? data.regions.join(',') : data.regions;
+        queryParams += `&regions=${encodeURIComponent(regionsParam)}`;
       }
       
       const response = await this.apiManager.request(
@@ -680,7 +684,7 @@ export class StateService {
     }
   };
 
-  async getAllStates(data: { page: number; limit: number; search: string }): Promise<StateResponse> {
+  async getAllStates(data: { page: number; limit: number; search?: string; country?: string; regions?: string | string[] }): Promise<StateResponse> {
     try {
       this.getHeaders();
       
@@ -688,6 +692,13 @@ export class StateService {
       let queryParams = `?page=${data.page}&limit=${data.limit}`;
       if (data.search) {
         queryParams += `&search=${encodeURIComponent(data.search)}`;
+      }
+      if (data.country) {
+        queryParams += `&country=${encodeURIComponent(data.country)}`;
+      }
+      if (data.regions) {
+        const regionsParam = Array.isArray(data.regions) ? data.regions.join(',') : data.regions;
+        queryParams += `&regions=${encodeURIComponent(regionsParam)}`;
       }
       
       const response = await this.apiManager.request(
@@ -2185,7 +2196,7 @@ async deletePaymentDetails(eventId: string): Promise<any> {
         }
       };
     
-      async getAllCities(data: { page: number; limit: number; search: string }): Promise<CityResponse> {
+      async getAllCities(data: { page: number; limit: number; search?: string; state?: string; regions?: string | string[] }): Promise<CityResponse> {
         try {
           this.getHeaders();
           
@@ -2193,6 +2204,13 @@ async deletePaymentDetails(eventId: string): Promise<any> {
           let queryParams = `?page=${data.page}&limit=${data.limit}`;
           if (data.search) {
             queryParams += `&search=${encodeURIComponent(data.search)}`;
+          }
+          if (data.state) {
+            queryParams += `&state=${encodeURIComponent(data.state)}`;
+          }
+          if (data.regions) {
+            const regionsParam = Array.isArray(data.regions) ? data.regions.join(',') : data.regions;
+            queryParams += `&regions=${encodeURIComponent(regionsParam)}`;
           }
           
           const response = await this.apiManager.request(
