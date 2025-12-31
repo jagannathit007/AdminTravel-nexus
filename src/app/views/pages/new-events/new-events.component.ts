@@ -77,6 +77,9 @@ interface Pricing {
   businessType: string;
   ticketPrice: number;
   stayFee: number;
+  totalSeats: number;
+  gstPercent: number;
+  finalAmount: number;
 }
 
 // Interface for API Response
@@ -96,6 +99,17 @@ interface Sponsor {
   tier: string;
   description: string;
   contactEmail: string;
+  price?: number;
+  gstPercent?: number;
+  totalPrice?: number;
+}
+
+interface SponsorTier {
+  name: string;
+  slots: number;
+  price: number;
+  gstPercent: number;
+  totalPrice: number;
 }
 
 interface Speaker {
@@ -177,9 +191,16 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     bannerImage: null,
     b2bTicketPrice: 0,
     b2bStayFee: 0,
+    b2bTotalSeats: 0,
+    b2bGstPercent: 18,
+    b2bFinalAmount: 0,
     b2cTicketPrice: 0,
     b2cStayFee: 0,
+    b2cTotalSeats: 0,
+    b2cGstPercent: 18,
+    b2cFinalAmount: 0,
     couponId: '',
+    sponsorshipTiers: [] as SponsorTier[],
   };
 
   editEventForm: any = {
@@ -192,14 +213,24 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     stallSize: '10x10 ft',
     b2bTicketPrice: 0,
     b2bStayFee: 0,
+    b2bTotalSeats: 0,
+    b2bGstPercent: 0,
+    b2bFinalAmount: 0,
     b2cTicketPrice: 0,
     b2cStayFee: 0,
+    b2cTotalSeats: 0,
+    b2cGstPercent: 0,
+    b2cFinalAmount: 0,
     couponId: '',
+    sponsorshipTiers: [] as SponsorTier[],
   };
   selectedEvent: Event | null = null;
-  
+
   // Coupon properties
   coupons: Coupon[] = [];
+  defaultSponsorTiers: string[] = ['Platinum', 'Gold', 'Silver', 'Bronze'];
+  availableTiers: string[] = ['Platinum', 'Gold', 'Silver', 'Bronze'];
+  availableEditTiers: string[] = ['Platinum', 'Gold', 'Silver', 'Bronze'];
   loadingCoupons: boolean = false;
 
   // Organizer properties
@@ -212,9 +243,9 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     images: GalleryItem[];
     videos: GalleryItem[];
   } = {
-    images: [],
-    videos: [],
-  };
+      images: [],
+      videos: [],
+    };
   galleryLoading: boolean = false;
   activeGalleryTab: 'images' | 'videos' = 'images';
 
@@ -241,11 +272,11 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     limit: number;
     isActive: string | undefined;
   } = {
-    search: '',
-    page: 1,
-    limit: 10,
-    isActive: undefined,
-  };
+      search: '',
+      page: 1,
+      limit: 10,
+      isActive: undefined,
+    };
 
   paginationConfig = {
     id: 'events-pagination',
@@ -258,7 +289,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     { label: 'Bronze', value: 'bronze' },
   ];
 
-   // Add these new properties for UPI payment functionality
+  // Add these new properties for UPI payment functionality
   paymentModal: any;
   selectedEventForPayment: Event | null = null;
   upiPaymentForm: {
@@ -270,13 +301,13 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     status: 'pending' | 'completed' | 'failed';
     isApproved: boolean;
   } = {
-    eventId: '',
-    amount: 0,
-    qrCodeUrl: '',
-    qrCodeFile: null,
-    status: 'pending',
-    isApproved: false
-  };
+      eventId: '',
+      amount: 0,
+      qrCodeUrl: '',
+      qrCodeFile: null,
+      status: 'pending',
+      isApproved: false
+    };
 
   paymentLoading: boolean = false;
   existingUpiPayment: UpiPaymentDetails | null = null;
@@ -287,6 +318,84 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     { label: 'Failed', value: 'failed' }
   ];
 
+
+  // Sponsorship Tiers Management
+  addSponsorTier(isEdit: boolean = false): void {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const newTier: SponsorTier = {
+      name: '',
+      slots: 1,
+      price: 0,
+      gstPercent: 18,
+      totalPrice: 0
+    };
+    form.sponsorshipTiers = [...(form.sponsorshipTiers || []), newTier];
+    this.syncAvailableTiers(isEdit);
+  }
+
+  removeSponsorTier(index: number, isEdit: boolean = false): void {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const tiers = [...(form.sponsorshipTiers || [])];
+    tiers.splice(index, 1);
+    form.sponsorshipTiers = tiers;
+    this.syncAvailableTiers(isEdit);
+  }
+
+  calculateTierTotal(tier: SponsorTier): void {
+    const basePrice = parseFloat(tier.price.toString()) || 0;
+    const gstPercent = parseFloat(tier.gstPercent.toString()) || 0;
+    tier.totalPrice = basePrice + (basePrice * gstPercent / 100);
+  }
+  calculatePricingTotal(type: 'B2B' | 'B2C', isEdit: boolean = false): void {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const price = type === 'B2B' ? parseFloat(form.b2bTicketPrice) || 0 : parseFloat(form.b2cTicketPrice) || 0;
+    const gst = type === 'B2B' ? parseFloat(form.b2bGstPercent) || 0 : parseFloat(form.b2cGstPercent) || 0;
+
+    // Add GST to price: Total = Price + (Price * GST / 100)
+    const finalAmount = price + (price * gst / 100);
+
+    if (type === 'B2B') {
+      form.b2bFinalAmount = finalAmount;
+    } else {
+      form.b2cFinalAmount = finalAmount;
+    }
+  }
+
+  syncAvailableTiers(isEdit: boolean = false): void {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const customTiers = (form.sponsorshipTiers || [])
+      .map((t: SponsorTier) => t.name || '(Unnamed Tier)')
+      .filter((name: string) => name !== '');
+
+    if (isEdit) {
+      this.availableEditTiers = customTiers.length > 0 ? customTiers : this.defaultSponsorTiers;
+    } else {
+      this.availableTiers = customTiers.length > 0 ? customTiers : this.defaultSponsorTiers;
+    }
+  }
+
+  getAvailableTiers(isEdit: boolean = false): string[] {
+    return isEdit ? this.availableEditTiers : this.availableTiers;
+  }
+
+  getRemainingSlots(tierName: string, isEdit: boolean = false): number | null {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const tier = (form.sponsorshipTiers || []).find((t: SponsorTier) => (t.name || '(Unnamed Tier)') === tierName);
+    if (!tier) return null;
+
+    const filledSlots = (form.sponsors || []).filter((s: Sponsor) => s.tier === tierName).length || 0;
+    return Math.max(0, tier.slots - filledSlots);
+  }
+
+  onSponsorTierChange(sponsor: Sponsor, isEdit: boolean = false): void {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const tier = (form.sponsorshipTiers || []).find((t: SponsorTier) => (t.name || '(Unnamed Tier)') === sponsor.tier);
+    if (tier) {
+      sponsor.price = tier.price;
+      sponsor.gstPercent = tier.gstPercent;
+      sponsor.totalPrice = tier.totalPrice;
+    }
+  }
 
   // Track which fields have been touched/interacted with
   touchedFields: any = {
@@ -366,7 +475,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     this.fetchCoupons();
     this.fetchOrganizers();
   }
-  
+
   async fetchCoupons(): Promise<void> {
     this.loadingCoupons = true;
     try {
@@ -374,16 +483,16 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
         page: 1,
         limit: 100 // Fetch more coupons for dropdown
       };
-      
+
       const response = await this.couponService.getCoupons(requestData);
-      
+
       if (response && response.success && response.data?.coupons) {
         // Filter only active and non-deleted coupons
         this.coupons = response.data.coupons.filter((coupon: Coupon) => coupon.isActive && !coupon.isDeleted);
       } else if (response && response.data?.coupons) {
         this.coupons = response.data.coupons.filter((coupon: Coupon) => coupon.isActive && !coupon.isDeleted);
       }
-      
+
       this.cdr.detectChanges();
     } catch (error) {
       console.error('Error fetching coupons:', error);
@@ -401,9 +510,9 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
         limit: 1000, // Fetch more users for organizer dropdown
         search: ''
       };
-      
+
       const response = await this.authService.getUsers(requestData);
-      
+
       if (response && response.docs) {
         this.organizers = response.docs.map((user: any) => {
           const displayName = user.name || user.business_name || user.email || 'Unknown';
@@ -416,7 +525,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
           };
         });
       }
-      
+
       this.cdr.detectChanges();
     } catch (error) {
       console.error('Error fetching organizers:', error);
@@ -454,10 +563,10 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
   }
 
   ngOnDestroy(): void {
-  if (this.upiPaymentForm.qrCodeUrl && this.upiPaymentForm.qrCodeUrl.startsWith('blob:')) {
-    URL.revokeObjectURL(this.upiPaymentForm.qrCodeUrl);
+    if (this.upiPaymentForm.qrCodeUrl && this.upiPaymentForm.qrCodeUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(this.upiPaymentForm.qrCodeUrl);
+    }
   }
-}
 
   async fetchEvents(): Promise<void> {
     this.eventsLoading = true;
@@ -581,7 +690,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
 
   onEventTypeChange(isEdit: boolean = false): void {
     const form = isEdit ? this.editEventForm : this.eventForm;
-    
+
     if (form.eventType === 'online') {
       // For online events, force a clean online setup
       form.location = 'online';           // Always set location to "online"
@@ -596,7 +705,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
         form.venue = '';
       }
     }
-    
+
     this.cdr.detectChanges();
   }
 
@@ -676,14 +785,14 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     if (!touched.mapUrl) return true;
 
     const mapUrl = form.mapUrl?.trim();
-    
+
     // If event is online, validate Zoom URL - only check for https: validation
     if (form.eventType === 'online') {
       if (!mapUrl) {
         errors.mapUrl = 'Zoom URL is required for online events';
         return false;
       }
-      
+
       // Only validate that URL starts with https: or http:
       if (!mapUrl.toLowerCase().startsWith('https://') && !mapUrl.toLowerCase().startsWith('http://')) {
         errors.mapUrl = 'Please enter a valid URL starting with https:// or http://';
@@ -698,7 +807,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
         }
       }
     }
-    
+
     errors.mapUrl = '';
     return true;
   }
@@ -720,6 +829,23 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       return false;
     }
     errors.capacity = '';
+    return true;
+  }
+
+  validateSeats(isEdit: boolean = false): boolean {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const errors = isEdit ? this.editValidationErrors : this.validationErrors;
+
+    const b2bSeats = parseInt(form.b2bTotalSeats) || 0;
+    const b2cSeats = parseInt(form.b2cTotalSeats) || 0;
+    const capacity = parseInt(form.capacity) || 0;
+
+    if (b2bSeats + b2cSeats > capacity) {
+      errors.seats = `Total seats (${b2bSeats + b2cSeats}) cannot exceed capacity (${capacity})`;
+      return false;
+    }
+
+    errors.seats = '';
     return true;
   }
 
@@ -867,9 +993,9 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     const errors = isEdit ? this.editValidationErrors : this.validationErrors;
 
     if (!form.speakers || form.speakers.length === 0) {
-    errors.speakers = ''; // Clear error instead of setting it
-    return true; // Return true instead of false
-  }
+      errors.speakers = ''; // Clear error instead of setting it
+      return true; // Return true instead of false
+    }
 
     let isValid = true;
     form.speakers.forEach((speaker: Speaker, index: number) => {
@@ -1256,6 +1382,9 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       tier: '',
       description: '',
       contactEmail: '',
+      price: 0,
+      gstPercent: 18,
+      totalPrice: 0,
     };
     this.eventForm.sponsors.push(newSponsor);
   }
@@ -1328,8 +1457,8 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
         const query = placeMatch
           ? placeMatch[1]
           : searchMatch
-          ? searchMatch[1]
-          : '';
+            ? searchMatch[1]
+            : '';
         if (query) {
           embedUrl = `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${encodeURIComponent(
             query
@@ -1353,372 +1482,416 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
   }
 
 
-async createEvent(): Promise<void> {
-  try {
-    this.markAllFieldsAsTouched();
+  async createEvent(): Promise<void> {
+    try {
+      this.markAllFieldsAsTouched();
 
-    if (!this.validateFormForSubmission()) {
-      swalHelper.showToast('Please fix all validation errors', 'warning');
-      return;
-    }
-
-    this.loading = true;
-    const formData = new FormData();
-
-    // Basic fields
-    const basicFields = [
-      'title',
-      'description',
-      'startDate',
-      'endDate',
-      'startTime',
-      'endTime',
-      'location',
-      'venue',
-      'mapUrl',
-      'eventType',
-      'capacity',
-    ];
-
-    basicFields.forEach((key) => {
-      if (
-        this.eventForm[key] !== null &&
-        this.eventForm[key] !== undefined &&
-        this.eventForm[key] !== ''
-      ) {
-        formData.append(key, this.eventForm[key].toString());
-      }
-    });
-
-    // Organizer (mandatory)
-    if (this.eventForm.organizerId) {
-      formData.append('organizerId', this.eventForm.organizerId);
-    }
-
-    // Stalls (optional)
-    if (this.eventForm.totalStalls !== null && this.eventForm.totalStalls !== undefined && this.eventForm.totalStalls > 0) {
-      formData.append('totalStalls', this.eventForm.totalStalls.toString());
-      if (this.eventForm.stallPrice) {
-        formData.append('stallPrice', this.eventForm.stallPrice.toString());
-      }
-      if (this.eventForm.stallSize) {
-        formData.append('stallSize', this.eventForm.stallSize);
-      }
-    }
-
-    // Pricing
-    const parsedPricing = [
-      { businessType: 'B2B', ticketPrice: parseFloat(this.eventForm.b2bTicketPrice) || 0, stayFee: parseFloat(this.eventForm.b2bStayFee) || 0 },
-      { businessType: 'B2C', ticketPrice: parseFloat(this.eventForm.b2cTicketPrice) || 0, stayFee: parseFloat(this.eventForm.b2cStayFee) || 0 }
-    ];
-    formData.append('pricing', JSON.stringify(parsedPricing));
-
-    // Calculate isPaid based on total pricing
-    const totalPrice = (parsedPricing[0].ticketPrice + parsedPricing[0].stayFee + parsedPricing[1].ticketPrice + parsedPricing[1].stayFee);
-    const isPaid = totalPrice > 0;
-    formData.append('isPaid', isPaid.toString());
-
-    // Banner Image
-    if (this.eventForm.bannerImage instanceof File) {
-      formData.append('bannerImage', this.eventForm.bannerImage);
-    }
-
-    // Process sponsors
-    const sponsorsArray = Array.isArray(this.eventForm.sponsors)
-      ? this.eventForm.sponsors
-      : [];
-    const processedSponsors = [];
-
-    for (let i = 0; i < sponsorsArray.length; i++) {
-      const sponsor = sponsorsArray[i];
-
-      // Add sponsor logo to FormData with correct field name
-      if (sponsor.logo instanceof File) {
-        formData.append('sponsorLogo', sponsor.logo); // Use 'sponsorLogo' without index
+      if (!this.validateFormForSubmission()) {
+        swalHelper.showToast('Please fix all validation errors', 'warning');
+        return;
       }
 
-      // Prepare sponsor data without the file
-      const sponsorData = {
-        name: sponsor.name || '',
-        logo: '', // Will be populated by backend
-        website: sponsor.website || '',
-        tier: sponsor.tier || 'bronze',
-        description: sponsor.description || '',
-        contactEmail: sponsor.contactEmail || '',
-      };
+      this.loading = true;
+      const formData = new FormData();
 
-      processedSponsors.push(sponsorData);
-    }
-    formData.append('sponsors', JSON.stringify(processedSponsors));
+      // Basic fields
+      const basicFields = [
+        'title',
+        'description',
+        'startDate',
+        'endDate',
+        'startTime',
+        'endTime',
+        'location',
+        'venue',
+        'mapUrl',
+        'eventType',
+        'capacity',
+      ];
 
-    // Process speakers
-    const speakersArray = Array.isArray(this.eventForm.speakers)
-      ? this.eventForm.speakers
-      : [];
-    const processedSpeakers = [];
+      basicFields.forEach((key) => {
+        if (
+          this.eventForm[key] !== null &&
+          this.eventForm[key] !== undefined &&
+          this.eventForm[key] !== ''
+        ) {
+          formData.append(key, this.eventForm[key].toString());
+        }
+      });
 
-    for (let i = 0; i < speakersArray.length; i++) {
-      const speaker = speakersArray[i];
-
-      // Add speaker photo to FormData with correct field name
-      if (speaker.photo instanceof File) {
-        formData.append('speakerPhoto', speaker.photo); // Use 'speakerPhoto' without index
+      // Organizer (mandatory)
+      if (this.eventForm.organizerId) {
+        formData.append('organizerId', this.eventForm.organizerId);
       }
 
-      // Prepare speaker data without the file
-      const speakerData = {
-        name: speaker.name || '',
-        bio: speaker.bio || '',
-        photo: '', // Will be populated by backend
-        email: speaker.email || '',
-        socialLinks: {
-          linkedin: speaker.socialLinks?.linkedin || '',
-          twitter: speaker.socialLinks?.twitter || '',
-          website: speaker.socialLinks?.website || '',
-          instagram: speaker.socialLinks?.instagram || '',
+      // Stalls (optional)
+      if (this.eventForm.totalStalls !== null && this.eventForm.totalStalls !== undefined && this.eventForm.totalStalls > 0) {
+        formData.append('totalStalls', this.eventForm.totalStalls.toString());
+        if (this.eventForm.stallPrice) {
+          formData.append('stallPrice', this.eventForm.stallPrice.toString());
+        }
+        if (this.eventForm.stallSize) {
+          formData.append('stallSize', this.eventForm.stallSize);
+        }
+      }
+
+      // Pricing
+      const parsedPricing = [
+        {
+          businessType: 'B2B',
+          ticketPrice: parseFloat(this.eventForm.b2bTicketPrice) || 0,
+          stayFee: parseFloat(this.eventForm.b2bStayFee) || 0,
+          totalSeats: parseInt(this.eventForm.b2bTotalSeats) || 0,
+          gstPercent: parseFloat(this.eventForm.b2bGstPercent) || 0,
+          finalAmount: parseFloat(this.eventForm.b2bFinalAmount) || 0
         },
-        date: speaker.date || null,
-      };
+        {
+          businessType: 'B2C',
+          ticketPrice: parseFloat(this.eventForm.b2cTicketPrice) || 0,
+          stayFee: parseFloat(this.eventForm.b2cStayFee) || 0,
+          totalSeats: parseInt(this.eventForm.b2cTotalSeats) || 0,
+          gstPercent: parseFloat(this.eventForm.b2cGstPercent) || 0,
+          finalAmount: parseFloat(this.eventForm.b2cFinalAmount) || 0
+        }
+      ];
+      formData.append('pricing', JSON.stringify(parsedPricing));
 
-      processedSpeakers.push(speakerData);
+      // Sponsorship Tiers
+      if (this.eventForm.sponsorshipTiers && this.eventForm.sponsorshipTiers.length > 0) {
+        formData.append('sponsorshipTiers', JSON.stringify(this.eventForm.sponsorshipTiers));
+      }
+
+      // Calculate isPaid based on total pricing
+      const totalPrice = (parsedPricing[0].ticketPrice + parsedPricing[0].stayFee + parsedPricing[1].ticketPrice + parsedPricing[1].stayFee);
+      const isPaid = totalPrice > 0;
+      formData.append('isPaid', isPaid.toString());
+
+      // Banner Image
+      if (this.eventForm.bannerImage instanceof File) {
+        formData.append('bannerImage', this.eventForm.bannerImage);
+      }
+
+      // Process sponsors
+      const sponsorsArray = Array.isArray(this.eventForm.sponsors)
+        ? this.eventForm.sponsors
+        : [];
+      const processedSponsors = [];
+
+      for (let i = 0; i < sponsorsArray.length; i++) {
+        const sponsor = sponsorsArray[i];
+
+        // Add sponsor logo to FormData with correct field name
+        if (sponsor.logo instanceof File) {
+          formData.append('sponsorLogo', sponsor.logo); // Use 'sponsorLogo' without index
+        }
+
+        // Prepare sponsor data without the file
+        const sponsorData = {
+          name: sponsor.name || '',
+          logo: '', // Will be populated by backend
+          website: sponsor.website || '',
+          tier: sponsor.tier || 'bronze',
+          description: sponsor.description || '',
+          contactEmail: sponsor.contactEmail || '',
+          price: sponsor.price || 0,
+          gstPercent: sponsor.gstPercent || 0,
+          totalPrice: sponsor.totalPrice || 0,
+        };
+
+        processedSponsors.push(sponsorData);
+      }
+      formData.append('sponsors', JSON.stringify(processedSponsors));
+
+      // Process speakers
+      const speakersArray = Array.isArray(this.eventForm.speakers)
+        ? this.eventForm.speakers
+        : [];
+      const processedSpeakers = [];
+
+      for (let i = 0; i < speakersArray.length; i++) {
+        const speaker = speakersArray[i];
+
+        // Add speaker photo to FormData with correct field name
+        if (speaker.photo instanceof File) {
+          formData.append('speakerPhoto', speaker.photo); // Use 'speakerPhoto' without index
+        }
+
+        // Prepare speaker data without the file
+        const speakerData = {
+          name: speaker.name || '',
+          bio: speaker.bio || '',
+          photo: '', // Will be populated by backend
+          email: speaker.email || '',
+          socialLinks: {
+            linkedin: speaker.socialLinks?.linkedin || '',
+            twitter: speaker.socialLinks?.twitter || '',
+            website: speaker.socialLinks?.website || '',
+            instagram: speaker.socialLinks?.instagram || '',
+          },
+          date: speaker.date || null,
+        };
+
+        processedSpeakers.push(speakerData);
+      }
+      formData.append('speakers', JSON.stringify(processedSpeakers));
+
+      // Process schedules
+      const schedulesArray = Array.isArray(this.eventForm.schedules)
+        ? this.eventForm.schedules
+        : [];
+      const processedSchedules = schedulesArray.map((schedule: any) => ({
+        title: schedule?.title || '',
+        description: schedule?.description || '',
+        startTime:
+          schedule?.startDate && schedule?.startTime
+            ? new Date(`${schedule.startDate}T${schedule.startTime}`).toISOString()
+            : null,
+        endTime:
+          schedule?.endDate && schedule?.endTime
+            ? new Date(`${schedule.endDate}T${schedule.endTime}`).toISOString()
+            : null,
+        speakerId: schedule?.speakerId || null,
+        location: schedule?.location || '',
+      }));
+      formData.append('schedules', JSON.stringify(processedSchedules));
+
+      // Handle coupons - send as array even if single select
+      const couponId = this.eventForm.couponId;
+      if (couponId && couponId.trim() !== '') {
+        formData.append('coupons', JSON.stringify([couponId]));
+      } else {
+        // If no coupon selected, send empty array
+        formData.append('coupons', JSON.stringify([]));
+      }
+
+      // Debug FormData contents
+      console.log('FormData contents:');
+      formData.forEach((value, key) => {
+        console.log(key, value instanceof File ? `File: ${value.name}` : value);
+      });
+
+      const response = await this.eventService.newCreateEvent(formData);
+
+      if (response && response.success) {
+        swalHelper.showToast('Event created successfully', 'success');
+        this.closeModal();
+        this.resetForm();
+        this.fetchEvents();
+      } else {
+        swalHelper.showToast(
+          response.message || 'Failed to create event',
+          'error'
+        );
+      }
+    } catch (error) {
+      console.error('Error creating event:', error);
+      swalHelper.showToast('Failed to create event', 'error');
+    } finally {
+      this.loading = false;
     }
-    formData.append('speakers', JSON.stringify(processedSpeakers));
-
-    // Process schedules
-    const schedulesArray = Array.isArray(this.eventForm.schedules)
-      ? this.eventForm.schedules
-      : [];
-    const processedSchedules = schedulesArray.map((schedule: any) => ({
-      title: schedule?.title || '',
-      description: schedule?.description || '',
-      startTime:
-        schedule?.startDate && schedule?.startTime
-          ? new Date(`${schedule.startDate}T${schedule.startTime}`).toISOString()
-          : null,
-      endTime:
-        schedule?.endDate && schedule?.endTime
-          ? new Date(`${schedule.endDate}T${schedule.endTime}`).toISOString()
-          : null,
-      speakerId: schedule?.speakerId || null,
-      location: schedule?.location || '',
-    }));
-    formData.append('schedules', JSON.stringify(processedSchedules));
-
-    // Handle coupons - send as array even if single select
-    const couponId = this.eventForm.couponId;
-    if (couponId && couponId.trim() !== '') {
-      formData.append('coupons', JSON.stringify([couponId]));
-    } else {
-      // If no coupon selected, send empty array
-      formData.append('coupons', JSON.stringify([]));
-    }
-
-    // Debug FormData contents
-    console.log('FormData contents:');
-    formData.forEach((value, key) => {
-      console.log(key, value instanceof File ? `File: ${value.name}` : value);
-    });
-
-    const response = await this.eventService.newCreateEvent(formData);
-
-    if (response && response.success) {
-      swalHelper.showToast('Event created successfully', 'success');
-      this.closeModal();
-      this.resetForm();
-      this.fetchEvents();
-    } else {
-      swalHelper.showToast(
-        response.message || 'Failed to create event',
-        'error'
-      );
-    }
-  } catch (error) {
-    console.error('Error creating event:', error);
-    swalHelper.showToast('Failed to create event', 'error');
-  } finally {
-    this.loading = false;
   }
-}
-async updateEvent(): Promise<void> {
-  try {
-    this.markAllEditFieldsAsTouched();
+  async updateEvent(): Promise<void> {
+    try {
+      this.markAllEditFieldsAsTouched();
 
-    if (!this.validateEditFormForSubmission()) {
-      swalHelper.showToast('Please fix all validation errors', 'warning');
-      return;
-    }
-
-    this.editLoading = true;
-    const formData = new FormData();
-
-    formData.append('id', this.selectedEvent!._id);
-
-    const basicFields = [
-      'title',
-      'description',
-      'startDate',
-      'endDate',
-      'startTime',
-      'endTime',
-      'location',
-      'venue',
-      'mapUrl',
-      'eventType',
-      'capacity',
-    ];
-
-    basicFields.forEach((key) => {
-      if (
-        this.editEventForm[key] !== null &&
-        this.editEventForm[key] !== undefined &&
-        this.editEventForm[key] !== ''
-      ) {
-        formData.append(key, this.editEventForm[key].toString());
-      }
-    });
-
-    // Organizer (mandatory)
-    if (this.editEventForm.organizerId) {
-      formData.append('organizerId', this.editEventForm.organizerId);
-    }
-
-    // Stalls (optional)
-    if (this.editEventForm.totalStalls !== null && this.editEventForm.totalStalls !== undefined) {
-      formData.append('totalStalls', this.editEventForm.totalStalls.toString());
-      if (this.editEventForm.stallPrice !== undefined) {
-        formData.append('stallPrice', this.editEventForm.stallPrice.toString());
-      }
-      if (this.editEventForm.stallSize) {
-        formData.append('stallSize', this.editEventForm.stallSize);
-      }
-    }
-
-    // Pricing
-    const parsedPricing = [
-      { businessType: 'B2B', ticketPrice: parseFloat(this.editEventForm.b2bTicketPrice) || 0, stayFee: parseFloat(this.editEventForm.b2bStayFee) || 0 },
-      { businessType: 'B2C', ticketPrice: parseFloat(this.editEventForm.b2cTicketPrice) || 0, stayFee: parseFloat(this.editEventForm.b2cStayFee) || 0 }
-    ];
-    formData.append('pricing', JSON.stringify(parsedPricing));
-
-    // Calculate isPaid based on total pricing
-    const totalPrice = (parsedPricing[0].ticketPrice + parsedPricing[0].stayFee + parsedPricing[1].ticketPrice + parsedPricing[1].stayFee);
-    const isPaid = totalPrice > 0;
-    formData.append('isPaid', isPaid.toString());
-
-    // Banner Image
-    if (this.editEventForm.bannerImage instanceof File) {
-      formData.append('bannerImage', this.editEventForm.bannerImage);
-    }
-
-    // Process sponsors
-    const sponsorsArray = Array.isArray(this.editEventForm.sponsors)
-      ? this.editEventForm.sponsors
-      : [];
-    const processedSponsors: any[] = [];
-
-    for (let i = 0; i < sponsorsArray.length; i++) {
-      const sponsor = sponsorsArray[i];
-      const sponsorData: any = {
-        name: sponsor?.name || '',
-        logo: sponsor?.logo instanceof File ? '' : (sponsor?.logo || ''),
-        website: sponsor?.website || '',
-        tier: sponsor?.tier || 'bronze',
-        description: sponsor?.description || '',
-        contactEmail: sponsor?.contactEmail || '',
-      };
-
-      if (sponsor?.logo instanceof File) {
-        formData.append('sponsorLogo', sponsor.logo); // Use 'sponsorLogo' without index
+      if (!this.validateEditFormForSubmission()) {
+        swalHelper.showToast('Please fix all validation errors', 'warning');
+        return;
       }
 
-      processedSponsors.push(sponsorData);
-    }
-    formData.append('sponsors', JSON.stringify(processedSponsors));
+      this.editLoading = true;
+      const formData = new FormData();
 
-    // Process speakers
-    const speakersArray = Array.isArray(this.editEventForm.speakers)
-      ? this.editEventForm.speakers
-      : [];
-    const processedSpeakers: any[] = [];
+      formData.append('id', this.selectedEvent!._id);
 
-    for (let i = 0; i < speakersArray.length; i++) {
-      const speaker = speakersArray[i];
-      const speakerData: any = {
-        name: speaker?.name || '',
-        bio: speaker?.bio || '',
-        photo: speaker?.photo instanceof File ? '' : (speaker?.photo || ''),
-        email: speaker?.email || '',
-        socialLinks: {
-          linkedin: speaker?.socialLinks?.linkedin || '',
-          twitter: speaker?.socialLinks?.twitter || '',
-          website: speaker?.socialLinks?.website || '',
-          instagram: speaker?.socialLinks?.instagram || '',
+      const basicFields = [
+        'title',
+        'description',
+        'startDate',
+        'endDate',
+        'startTime',
+        'endTime',
+        'location',
+        'venue',
+        'mapUrl',
+        'eventType',
+        'capacity',
+      ];
+
+      basicFields.forEach((key) => {
+        if (
+          this.editEventForm[key] !== null &&
+          this.editEventForm[key] !== undefined &&
+          this.editEventForm[key] !== ''
+        ) {
+          formData.append(key, this.editEventForm[key].toString());
+        }
+      });
+
+      // Organizer (mandatory)
+      if (this.editEventForm.organizerId) {
+        formData.append('organizerId', this.editEventForm.organizerId);
+      }
+
+      // Stalls (optional)
+      if (this.editEventForm.totalStalls !== null && this.editEventForm.totalStalls !== undefined) {
+        formData.append('totalStalls', this.editEventForm.totalStalls.toString());
+        if (this.editEventForm.stallPrice !== undefined) {
+          formData.append('stallPrice', this.editEventForm.stallPrice.toString());
+        }
+        if (this.editEventForm.stallSize) {
+          formData.append('stallSize', this.editEventForm.stallSize);
+        }
+      }
+
+      // Pricing
+      const parsedPricing = [
+        {
+          businessType: 'B2B',
+          ticketPrice: parseFloat(this.editEventForm.b2bTicketPrice) || 0,
+          stayFee: parseFloat(this.editEventForm.b2bStayFee) || 0,
+          totalSeats: parseInt(this.editEventForm.b2bTotalSeats) || 0,
+          gstPercent: parseFloat(this.editEventForm.b2bGstPercent) || 0,
+          finalAmount: parseFloat(this.editEventForm.b2bFinalAmount) || 0
         },
-        date: speaker?.date || null,
-      };
+        {
+          businessType: 'B2C',
+          ticketPrice: parseFloat(this.editEventForm.b2cTicketPrice) || 0,
+          stayFee: parseFloat(this.editEventForm.b2cStayFee) || 0,
+          totalSeats: parseInt(this.editEventForm.b2cTotalSeats) || 0,
+          gstPercent: parseFloat(this.editEventForm.b2cGstPercent) || 0,
+          finalAmount: parseFloat(this.editEventForm.b2cFinalAmount) || 0
+        }
+      ];
+      formData.append('pricing', JSON.stringify(parsedPricing));
 
-      if (speaker?.photo instanceof File) {
-        formData.append('speakerPhoto', speaker.photo); // Use 'speakerPhoto' without index
+      // Sponsorship Tiers
+      if (this.editEventForm.sponsorshipTiers && this.editEventForm.sponsorshipTiers.length > 0) {
+        formData.append('sponsorshipTiers', JSON.stringify(this.editEventForm.sponsorshipTiers));
       }
 
-      processedSpeakers.push(speakerData);
+      // Calculate isPaid based on total pricing
+      const totalPrice = (parsedPricing[0].ticketPrice + parsedPricing[0].stayFee + parsedPricing[1].ticketPrice + parsedPricing[1].stayFee);
+      const isPaid = totalPrice > 0;
+      formData.append('isPaid', isPaid.toString());
+
+      // Banner Image
+      if (this.editEventForm.bannerImage instanceof File) {
+        formData.append('bannerImage', this.editEventForm.bannerImage);
+      }
+
+      // Process sponsors
+      const sponsorsArray = Array.isArray(this.editEventForm.sponsors)
+        ? this.editEventForm.sponsors
+        : [];
+      const processedSponsors: any[] = [];
+
+      for (let i = 0; i < sponsorsArray.length; i++) {
+        const sponsor = sponsorsArray[i];
+        const sponsorData: any = {
+          name: sponsor?.name || '',
+          logo: sponsor?.logo instanceof File ? '' : (sponsor?.logo || ''),
+          website: sponsor?.website || '',
+          tier: sponsor?.tier || 'bronze',
+          description: sponsor?.description || '',
+          contactEmail: sponsor?.contactEmail || '',
+          price: sponsor?.price || 0,
+          gstPercent: sponsor?.gstPercent || 0,
+          totalPrice: sponsor?.totalPrice || 0,
+        };
+
+        if (sponsor?.logo instanceof File) {
+          formData.append('sponsorLogo', sponsor.logo); // Use 'sponsorLogo' without index
+        }
+
+        processedSponsors.push(sponsorData);
+      }
+      formData.append('sponsors', JSON.stringify(processedSponsors));
+
+      // Process speakers
+      const speakersArray = Array.isArray(this.editEventForm.speakers)
+        ? this.editEventForm.speakers
+        : [];
+      const processedSpeakers: any[] = [];
+
+      for (let i = 0; i < speakersArray.length; i++) {
+        const speaker = speakersArray[i];
+        const speakerData: any = {
+          name: speaker?.name || '',
+          bio: speaker?.bio || '',
+          photo: speaker?.photo instanceof File ? '' : (speaker?.photo || ''),
+          email: speaker?.email || '',
+          socialLinks: {
+            linkedin: speaker?.socialLinks?.linkedin || '',
+            twitter: speaker?.socialLinks?.twitter || '',
+            website: speaker?.socialLinks?.website || '',
+            instagram: speaker?.socialLinks?.instagram || '',
+          },
+          date: speaker?.date || null,
+        };
+
+        if (speaker?.photo instanceof File) {
+          formData.append('speakerPhoto', speaker.photo); // Use 'speakerPhoto' without index
+        }
+
+        processedSpeakers.push(speakerData);
+      }
+      formData.append('speakers', JSON.stringify(processedSpeakers));
+
+      // Process schedules
+      const schedulesArray = Array.isArray(this.editEventForm.schedules)
+        ? this.editEventForm.schedules
+        : [];
+      const processedSchedules = schedulesArray.map((schedule: any) => ({
+        title: schedule?.title || '',
+        description: schedule?.description || '',
+        startTime:
+          schedule?.startDate && schedule?.startTime
+            ? new Date(`${schedule.startDate}T${schedule.startTime}`).toISOString()
+            : null,
+        endTime:
+          schedule?.endDate && schedule?.endTime
+            ? new Date(`${schedule.endDate}T${schedule.endTime}`).toISOString()
+            : null,
+        speakerId: schedule?.speakerId || null,
+        location: schedule?.location || '',
+      }));
+      formData.append('schedules', JSON.stringify(processedSchedules));
+
+      // Handle coupons - send as array even if single select
+      const couponId = this.editEventForm.couponId;
+      if (couponId && couponId.trim() !== '') {
+        formData.append('coupons', JSON.stringify([couponId]));
+      } else {
+        // If no coupon selected, send empty array
+        formData.append('coupons', JSON.stringify([]));
+      }
+
+      // Debug FormData contents
+      console.log('FormData contents for update:');
+      formData.forEach((value, key) => {
+        console.log(key, value instanceof File ? `File: ${value.name}` : value);
+      });
+
+      const response = await this.eventService.newUpdateEvent(formData);
+
+      if (response && response.success) {
+        swalHelper.showToast('Event updated successfully', 'success');
+        this.closeEditModal();
+        this.fetchEvents();
+      } else {
+        swalHelper.showToast(
+          response.message || 'Failed to update event',
+          'error'
+        );
+      }
+    } catch (error) {
+      console.error('Error updating event:', error);
+      swalHelper.showToast('Failed to update event', 'error');
+    } finally {
+      this.editLoading = false;
     }
-    formData.append('speakers', JSON.stringify(processedSpeakers));
-
-    // Process schedules
-    const schedulesArray = Array.isArray(this.editEventForm.schedules)
-      ? this.editEventForm.schedules
-      : [];
-    const processedSchedules = schedulesArray.map((schedule: any) => ({
-      title: schedule?.title || '',
-      description: schedule?.description || '',
-      startTime:
-        schedule?.startDate && schedule?.startTime
-          ? new Date(`${schedule.startDate}T${schedule.startTime}`).toISOString()
-          : null,
-      endTime:
-        schedule?.endDate && schedule?.endTime
-          ? new Date(`${schedule.endDate}T${schedule.endTime}`).toISOString()
-          : null,
-      speakerId: schedule?.speakerId || null,
-      location: schedule?.location || '',
-    }));
-    formData.append('schedules', JSON.stringify(processedSchedules));
-
-    // Handle coupons - send as array even if single select
-    const couponId = this.editEventForm.couponId;
-    if (couponId && couponId.trim() !== '') {
-      formData.append('coupons', JSON.stringify([couponId]));
-    } else {
-      // If no coupon selected, send empty array
-      formData.append('coupons', JSON.stringify([]));
-    }
-
-    // Debug FormData contents
-    console.log('FormData contents for update:');
-    formData.forEach((value, key) => {
-      console.log(key, value instanceof File ? `File: ${value.name}` : value);
-    });
-
-    const response = await this.eventService.newUpdateEvent(formData);
-
-    if (response && response.success) {
-      swalHelper.showToast('Event updated successfully', 'success');
-      this.closeEditModal();
-      this.fetchEvents();
-    } else {
-      swalHelper.showToast(
-        response.message || 'Failed to update event',
-        'error'
-      );
-    }
-  } catch (error) {
-    console.error('Error updating event:', error);
-    swalHelper.showToast('Failed to update event', 'error');
-  } finally {
-    this.editLoading = false;
   }
-}
   async deleteEvent(eventId: string): Promise<void> {
     try {
       const result = await swalHelper.confirmation(
@@ -1844,6 +2017,10 @@ async updateEvent(): Promise<void> {
       isValid = false;
     }
 
+    if (!this.validateSeats()) {
+      isValid = false;
+    }
+
     if (!this.validateOrganizer()) {
       this.validationErrors.organizerId = 'Organizer is required';
       isValid = false;
@@ -1889,6 +2066,10 @@ async updateEvent(): Promise<void> {
 
     if (!this.validateCapacity(true)) {
       this.editValidationErrors.capacity = 'Capacity is required';
+      isValid = false;
+    }
+
+    if (!this.validateSeats(true)) {
       isValid = false;
     }
 
@@ -1960,7 +2141,7 @@ async updateEvent(): Promise<void> {
     //     schedule.endTime
     // );
 
-    return basicValid ;
+    return basicValid;
   }
 
   validateEditForm(): boolean {
@@ -1987,7 +2168,7 @@ async updateEvent(): Promise<void> {
         (speaker: any) => speaker.name && speaker.name.trim()
       );
 
-    return basicValid ;
+    return basicValid;
   }
 
   resetForm(): void {
@@ -2013,9 +2194,16 @@ async updateEvent(): Promise<void> {
       bannerImage: null,
       b2bTicketPrice: 0,
       b2bStayFee: 0,
+      b2bTotalSeats: 0,
+      b2bGstPercent: 18,
+      b2bFinalAmount: 0,
       b2cTicketPrice: 0,
       b2cStayFee: 0,
+      b2cTotalSeats: 0,
+      b2cGstPercent: 18,
+      b2cFinalAmount: 0,
       couponId: '',
+      sponsorshipTiers: [] as SponsorTier[],
     };
 
     this.validationErrors = {
@@ -2063,19 +2251,19 @@ async updateEvent(): Promise<void> {
     if (!eventId && this.selectedEvent) {
       eventId = this.selectedEvent._id;
     }
-    
+
     if (!eventId || eventId.trim() === '') {
       console.error('Event ID is empty in viewStalls. Selected event:', this.selectedEvent);
       swalHelper.showToast('Event ID is missing', 'error');
       return;
     }
-    
+
     console.log('Navigating to stalls with eventId:', eventId);
     this.closeViewModal();
-    
+
     // Use setTimeout to ensure modal is closed before navigation
     setTimeout(() => {
-      this.router.navigate(['/event-stalls'], { 
+      this.router.navigate(['/event-stalls'], {
         queryParams: { eventId: eventId }
       }).then(() => {
         console.log('Navigation completed to /event-stalls with eventId:', eventId);
@@ -2248,6 +2436,7 @@ async updateEvent(): Promise<void> {
         location: schedule.location || '',
       })),
       couponId: event.coupons && event.coupons.length > 0 ? (typeof event.coupons[0] === 'string' ? event.coupons[0] : event.coupons[0]._id) : '', // Single select, take first one
+      sponsorshipTiers: JSON.parse(JSON.stringify((event as any).sponsorshipTiers || [])),
     };
 
     if (event.pricing) {
@@ -2255,8 +2444,14 @@ async updateEvent(): Promise<void> {
       const b2c = event.pricing.find((p: Pricing) => p.businessType === 'B2C');
       this.editEventForm.b2bTicketPrice = b2b?.ticketPrice || 0;
       this.editEventForm.b2bStayFee = b2b?.stayFee || 0;
+      this.editEventForm.b2bTotalSeats = b2b?.totalSeats || 0;
+      this.editEventForm.b2bGstPercent = b2b?.gstPercent || 0;
+      this.editEventForm.b2bFinalAmount = b2b?.finalAmount || 0;
       this.editEventForm.b2cTicketPrice = b2c?.ticketPrice || 0;
       this.editEventForm.b2cStayFee = b2c?.stayFee || 0;
+      this.editEventForm.b2cTotalSeats = b2c?.totalSeats || 0;
+      this.editEventForm.b2cGstPercent = b2c?.gstPercent || 0;
+      this.editEventForm.b2cFinalAmount = b2c?.finalAmount || 0;
     }
 
     this.editValidationErrors = {
@@ -2424,51 +2619,51 @@ async updateEvent(): Promise<void> {
 
 
   async saveItemCaption(item: GalleryItem): Promise<void> {
-  if (!item._id || !this.selectedEventForGallery) return; // Only save for existing items
+    if (!item._id || !this.selectedEventForGallery) return; // Only save for existing items
 
-  try {
-    const response = await this.eventService.updateGalleryItem({
-      eventId: this.selectedEventForGallery._id,
-      itemId: item._id,
-      caption: item.caption || ''
-    });
+    try {
+      const response = await this.eventService.updateGalleryItem({
+        eventId: this.selectedEventForGallery._id,
+        itemId: item._id,
+        caption: item.caption || ''
+      });
 
-    if (response && response.success) {
-      // Optionally show toast: swalHelper.showToast('Caption updated successfully', 'success');
-    } else {
-      console.error('Failed to update caption:', response.message);
-      // Optionally revert or show error
+      if (response && response.success) {
+        // Optionally show toast: swalHelper.showToast('Caption updated successfully', 'success');
+      } else {
+        console.error('Failed to update caption:', response.message);
+        // Optionally revert or show error
+      }
+    } catch (error) {
+      console.error('Error updating caption:', error);
+      // Optionally show toast: swalHelper.showToast('Failed to update caption', 'error');
     }
-  } catch (error) {
-    console.error('Error updating caption:', error);
-    // Optionally show toast: swalHelper.showToast('Failed to update caption', 'error');
   }
-}
 
-async loadEventGallery(id: string): Promise<void> {
-  this.galleryLoading = true;
-  try {
-    const response = await this.eventService.newGetEventGallery({ id }); // Pass eventId in an object for POST body
+  async loadEventGallery(id: string): Promise<void> {
+    this.galleryLoading = true;
+    try {
+      const response = await this.eventService.newGetEventGallery({ id }); // Pass eventId in an object for POST body
 
-    if (response && response.success) {
-      const galleryData = response.data || []; // Assuming response.data is the array of gallery items
-      this.galleryItems.images = galleryData.filter((item: GalleryItem) => item.type === 'image');
-      this.galleryItems.videos = galleryData.filter((item: GalleryItem) => item.type === 'video');
-    } else {
+      if (response && response.success) {
+        const galleryData = response.data || []; // Assuming response.data is the array of gallery items
+        this.galleryItems.images = galleryData.filter((item: GalleryItem) => item.type === 'image');
+        this.galleryItems.videos = galleryData.filter((item: GalleryItem) => item.type === 'video');
+      } else {
+        this.galleryItems = { images: [], videos: [] };
+      }
+    } catch (error) {
+      console.error('Error loading gallery:', error);
+      swalHelper.showToast('Failed to load gallery', 'error');
       this.galleryItems = { images: [], videos: [] };
+    } finally {
+      this.galleryLoading = false;
     }
-  } catch (error) {
-    console.error('Error loading gallery:', error);
-    swalHelper.showToast('Failed to load gallery', 'error');
-    this.galleryItems = { images: [], videos: [] };
-  } finally {
-    this.galleryLoading = false;
   }
-}
 
   onGalleryFileChange(event: any, type: 'image' | 'video'): void {
     const files = Array.from(event.target.files) as File[];
-    
+
     files.forEach(file => {
       if (this.validateGalleryFile(file, type)) {
         const newItem: GalleryItem = {
@@ -2477,7 +2672,7 @@ async loadEventGallery(id: string): Promise<void> {
           caption: '',
           uploadedAt: new Date()
         };
-        
+
         if (type === 'image') {
           this.galleryItems.images.push(newItem);
         } else {
@@ -2485,20 +2680,20 @@ async loadEventGallery(id: string): Promise<void> {
         }
       }
     });
-    
+
     // Reset file input
     event.target.value = '';
   }
 
   validateGalleryFile(file: File, type: 'image' | 'video'): boolean {
     const maxSize = type === 'image' ? 5 * 1024 * 1024 : 50 * 1024 * 1024; // 5MB for images, 50MB for videos
-    
+
     if (file.size > maxSize) {
       swalHelper.showToast(`File size should be less than ${type === 'image' ? '5MB' : '50MB'}`, 'error');
       return false;
     }
 
-    const allowedTypes = type === 'image' 
+    const allowedTypes = type === 'image'
       ? ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
       : ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/flv', 'video/webm'];
 
@@ -2533,87 +2728,87 @@ async loadEventGallery(id: string): Promise<void> {
     return typeof item.url === 'string' ? this.imageurl + item.url : '';
   }
 
-async saveGalleryChanges(): Promise<void> {
-  if (!this.selectedEventForGallery) return;
+  async saveGalleryChanges(): Promise<void> {
+    if (!this.selectedEventForGallery) return;
 
-  try {
-    this.galleryLoading = true;
+    try {
+      this.galleryLoading = true;
 
-    // Collect all new files (both images and videos)
-    const newItems = [
-      ...this.galleryItems.images.filter(item => item.url instanceof File),
-      ...this.galleryItems.videos.filter(item => item.url instanceof File)
-    ];
+      // Collect all new files (both images and videos)
+      const newItems = [
+        ...this.galleryItems.images.filter(item => item.url instanceof File),
+        ...this.galleryItems.videos.filter(item => item.url instanceof File)
+      ];
 
-    if (newItems.length === 0) {
-      swalHelper.showToast('No new items to upload', 'info');
-      this.closeGalleryModal();
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('id', this.selectedEventForGallery._id);
-
-    newItems.forEach(item => {
-      if (item.url instanceof File) {
-        formData.append('files', item.url); // Append all files to 'files'
-        formData.append('captions[]', item.caption || '');
-        formData.append('types[]', item.type);
+      if (newItems.length === 0) {
+        swalHelper.showToast('No new items to upload', 'info');
+        this.closeGalleryModal();
+        return;
       }
-    });
 
-    const response = await this.eventService.uploadGalleryItem(formData);
+      const formData = new FormData();
+      formData.append('id', this.selectedEventForGallery._id);
 
-    if (response && response.success) {
-      swalHelper.showToast('New gallery items uploaded successfully', 'success');
-      this.closeGalleryModal();
-      // Optionally reload if needed, but since closing modal, it will reload on reopen
-    } else {
-      swalHelper.showToast(response.message || 'Failed to upload gallery items', 'error');
-    }
-  } catch (error) {
-    console.error('Error uploading gallery items:', error);
-    swalHelper.showToast('Failed to upload gallery items', 'error');
-  } finally {
-    this.galleryLoading = false;
-  }
-}
-
-// Update openGalleryModal to load the gallery
-openGalleryModal(event: Event): void {
-  this.selectedEventForGallery = event;
-  this.loadEventGallery(event._id);
-  this.showGalleryModal();
-}
-
-async deleteGalleryItem(item: GalleryItem, type: 'image' | 'video'): Promise<void> {
-  if (!this.selectedEventForGallery || !item._id) return;
-
-  try {
-    const result = await swalHelper.confirmation(
-      'Delete Gallery Item',
-      'Are you sure you want to delete this item from the gallery?',
-      'warning'
-    );
-
-    if (result.isConfirmed) {
-      const response = await this.eventService.deleteGalleryItem({
-        eventId: this.selectedEventForGallery._id,
-        itemId: item._id
+      newItems.forEach(item => {
+        if (item.url instanceof File) {
+          formData.append('files', item.url); // Append all files to 'files'
+          formData.append('captions[]', item.caption || '');
+          formData.append('types[]', item.type);
+        }
       });
 
+      const response = await this.eventService.uploadGalleryItem(formData);
+
       if (response && response.success) {
-        swalHelper.showToast('Gallery item deleted successfully', 'success');
-        await this.loadEventGallery(this.selectedEventForGallery._id); // Reload to reflect changes
+        swalHelper.showToast('New gallery items uploaded successfully', 'success');
+        this.closeGalleryModal();
+        // Optionally reload if needed, but since closing modal, it will reload on reopen
       } else {
-        swalHelper.showToast('Failed to delete gallery item', 'error');
+        swalHelper.showToast(response.message || 'Failed to upload gallery items', 'error');
       }
+    } catch (error) {
+      console.error('Error uploading gallery items:', error);
+      swalHelper.showToast('Failed to upload gallery items', 'error');
+    } finally {
+      this.galleryLoading = false;
     }
-  } catch (error) {
-    console.error('Error deleting gallery item:', error);
-    swalHelper.showToast('Failed to delete gallery item', 'error');
   }
-}
+
+  // Update openGalleryModal to load the gallery
+  openGalleryModal(event: Event): void {
+    this.selectedEventForGallery = event;
+    this.loadEventGallery(event._id);
+    this.showGalleryModal();
+  }
+
+  async deleteGalleryItem(item: GalleryItem, type: 'image' | 'video'): Promise<void> {
+    if (!this.selectedEventForGallery || !item._id) return;
+
+    try {
+      const result = await swalHelper.confirmation(
+        'Delete Gallery Item',
+        'Are you sure you want to delete this item from the gallery?',
+        'warning'
+      );
+
+      if (result.isConfirmed) {
+        const response = await this.eventService.deleteGalleryItem({
+          eventId: this.selectedEventForGallery._id,
+          itemId: item._id
+        });
+
+        if (response && response.success) {
+          swalHelper.showToast('Gallery item deleted successfully', 'success');
+          await this.loadEventGallery(this.selectedEventForGallery._id); // Reload to reflect changes
+        } else {
+          swalHelper.showToast('Failed to delete gallery item', 'error');
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting gallery item:', error);
+      swalHelper.showToast('Failed to delete gallery item', 'error');
+    }
+  }
 
   switchGalleryTab(tab: 'images' | 'videos'): void {
     this.activeGalleryTab = tab;
@@ -2633,7 +2828,7 @@ async deleteGalleryItem(item: GalleryItem, type: 'image' | 'video'): Promise<voi
     } else {
       $('#galleryModal').modal('hide');
     }
-    
+
     // Reset gallery data
     this.selectedEventForGallery = null;
     this.galleryItems = { images: [], videos: [] };
@@ -2656,7 +2851,7 @@ async deleteGalleryItem(item: GalleryItem, type: 'image' | 'video'): Promise<voi
   //   try {
   //     this.paymentLoading = true;
   //     const response = await this.eventService.getUpiPaymentDetails(eventId);
-      
+
   //     if (response && response.success && response.data) {
   //       this.existingUpiPayment = response.data;
   //       this.populateUpiPaymentForm(response.data);
@@ -2696,19 +2891,19 @@ async deleteGalleryItem(item: GalleryItem, type: 'image' | 'video'): Promise<voi
   }
 
   onQrCodeFileChange(event: any): void {
-  const file = event.target.files[0];
-  if (file && this.validateQrCodeFile(file)) {
-    this.upiPaymentForm.qrCodeFile = file;
+    const file = event.target.files[0];
+    if (file && this.validateQrCodeFile(file)) {
+      this.upiPaymentForm.qrCodeFile = file;
 
-    // revoke old preview if exists
-    if (this.upiPaymentForm.qrCodeUrl && this.upiPaymentForm.qrCodeUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(this.upiPaymentForm.qrCodeUrl);
+      // revoke old preview if exists
+      if (this.upiPaymentForm.qrCodeUrl && this.upiPaymentForm.qrCodeUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(this.upiPaymentForm.qrCodeUrl);
+      }
+
+      // generate new blob URL for preview
+      this.upiPaymentForm.qrCodeUrl = URL.createObjectURL(file);
     }
-
-    // generate new blob URL for preview
-    this.upiPaymentForm.qrCodeUrl = URL.createObjectURL(file);
   }
-}
 
   validateQrCodeFile(file: File): boolean {
     const maxSize = 5 * 1024 * 1024; // 5MB
@@ -2740,7 +2935,7 @@ async deleteGalleryItem(item: GalleryItem, type: 'image' | 'video'): Promise<voi
       if (this.upiPaymentForm.id) {
         formData.append('id', this.upiPaymentForm.id);
       }
-      
+
       formData.append('eventId', this.upiPaymentForm.eventId);
       // formData.append('amount', this.upiPaymentForm.amount.toString());
       formData.append('paymentMethod', 'upi');
@@ -2793,16 +2988,16 @@ async deleteGalleryItem(item: GalleryItem, type: 'image' | 'video'): Promise<voi
   }
 
   getQrCodePreview(): string {
-  if (this.upiPaymentForm.qrCodeFile) {
-    // already set in onQrCodeFileChange
-    return this.upiPaymentForm.qrCodeUrl;
+    if (this.upiPaymentForm.qrCodeFile) {
+      // already set in onQrCodeFileChange
+      return this.upiPaymentForm.qrCodeUrl;
+    }
+    return this.upiPaymentForm.qrCodeUrl
+      ? this.upiPaymentForm.qrCodeUrl.startsWith('blob:')
+        ? this.upiPaymentForm.qrCodeUrl
+        : this.imageurl + this.upiPaymentForm.qrCodeUrl
+      : '';
   }
-  return this.upiPaymentForm.qrCodeUrl
-    ? this.upiPaymentForm.qrCodeUrl.startsWith('blob:')
-      ? this.upiPaymentForm.qrCodeUrl
-      : this.imageurl + this.upiPaymentForm.qrCodeUrl
-    : '';
-}
 
   isPaymentButtonEnabled(event: Event): boolean {
     return event.ticketPrice > 0; // Only enable for paid events
@@ -2822,7 +3017,7 @@ async deleteGalleryItem(item: GalleryItem, type: 'image' | 'video'): Promise<voi
     } else {
       $('#paymentModal').modal('hide');
     }
-    
+
     // Reset payment data
     this.selectedEventForPayment = null;
     this.resetUpiPaymentForm();
@@ -2833,9 +3028,9 @@ async deleteGalleryItem(item: GalleryItem, type: 'image' | 'video'): Promise<voi
   }
 
   getFullRegistrationLink(event: any): string {
-  if (!event.registrationLink) return '';
-  return `${environment.baseURL}/${event.registrationLink}`;
-}
+    if (!event.registrationLink) return '';
+    return `${environment.baseURL}/${event.registrationLink}`;
+  }
 
   // Helper method to check if event has organizer info
   hasOrganizerInfo(event: any): boolean {
