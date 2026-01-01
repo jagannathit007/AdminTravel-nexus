@@ -231,6 +231,8 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
   defaultSponsorTiers: string[] = ['Platinum', 'Gold', 'Silver', 'Bronze'];
   availableTiers: string[] = ['Platinum', 'Gold', 'Silver', 'Bronze'];
   availableEditTiers: string[] = ['Platinum', 'Gold', 'Silver', 'Bronze'];
+  createSponsorTierLists: string[][] = [];
+  editSponsorTierLists: string[][] = [];
   loadingCoupons: boolean = false;
 
   // Organizer properties
@@ -364,37 +366,130 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
   syncAvailableTiers(isEdit: boolean = false): void {
     const form = isEdit ? this.editEventForm : this.eventForm;
     const customTiers = (form.sponsorshipTiers || [])
-      .map((t: SponsorTier) => t.name || '(Unnamed Tier)')
+      .map((t: SponsorTier) => (t.name || '').trim())
       .filter((name: string) => name !== '');
 
+    // Combine defaults and custom tiers, ensuring uniqueness case-insensitively
+    const combined = [...this.defaultSponsorTiers];
+    customTiers.forEach((custom: string) => {
+      const exists = combined.some(d => d.trim().toLowerCase() === custom.toLowerCase());
+      if (!exists) {
+        combined.push(custom);
+      }
+    });
+
     if (isEdit) {
-      this.availableEditTiers = customTiers.length > 0 ? customTiers : this.defaultSponsorTiers;
+      this.availableEditTiers = [...combined];
+      this.refreshSponsorTierLists(true);
     } else {
-      this.availableTiers = customTiers.length > 0 ? customTiers : this.defaultSponsorTiers;
+      this.availableTiers = [...combined];
+      this.refreshSponsorTierLists(false);
     }
   }
 
-  getAvailableTiers(isEdit: boolean = false): string[] {
-    return isEdit ? this.availableEditTiers : this.availableTiers;
+  refreshSponsorTierLists(isEdit: boolean): void {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const masterTiers = isEdit ? this.availableEditTiers : this.availableTiers;
+    const sponsorLists: string[][] = [];
+
+    (form.sponsors || []).forEach((sponsor: Sponsor, index: number) => {
+      const currentSelection = (sponsor.tier || '').trim().toLowerCase();
+
+      // For each sponsor, calculate which tiers are available
+      const availableForThisSponsor = masterTiers.filter(tierName => {
+        const normalizedTier = tierName.trim().toLowerCase();
+        // Always include their currently selected tier
+        if (currentSelection && normalizedTier === currentSelection) return true;
+
+        const remaining = this.getRemainingSlots(tierName, isEdit, index);
+        return remaining === null || remaining > 0;
+      });
+
+      sponsorLists.push(availableForThisSponsor);
+    });
+
+    if (isEdit) {
+      this.editSponsorTierLists = sponsorLists;
+    } else {
+      this.createSponsorTierLists = sponsorLists;
+    }
   }
 
-  getRemainingSlots(tierName: string, isEdit: boolean = false): number | null {
+  // Removed isTierDisabled and getAvailableTiers in favor of stable per-sponsor lists
+
+  getRemainingSlots(tierName: string, isEdit: boolean = false, excludeSponsorIndex?: number): number | null {
+    if (!tierName) return null;
     const form = isEdit ? this.editEventForm : this.eventForm;
-    const tier = (form.sponsorshipTiers || []).find((t: SponsorTier) => (t.name || '(Unnamed Tier)') === tierName);
+    const normalizedName = tierName.trim().toLowerCase();
+
+    const tier = (form.sponsorshipTiers || []).find((t: SponsorTier) =>
+      (t.name || '').trim().toLowerCase() === normalizedName
+    );
     if (!tier) return null;
 
-    const filledSlots = (form.sponsors || []).filter((s: Sponsor) => s.tier === tierName).length || 0;
-    return Math.max(0, tier.slots - filledSlots);
+    // Count slots filled by OTHER sponsors
+    const filledByOthers = (form.sponsors || []).filter((s: Sponsor, idx: number) =>
+      idx !== excludeSponsorIndex && (s.tier || '').trim().toLowerCase() === normalizedName
+    ).length || 0;
+
+    const totalSlots = parseInt(tier.slots as any) || 0;
+    return Math.max(0, totalSlots - filledByOthers);
   }
+
+  compareTiers = (a: any, b: any): boolean => {
+    const s1 = (a || '').toString().trim().toLowerCase();
+    const s2 = (b || '').toString().trim().toLowerCase();
+    return s1 === s2;
+  };
 
   onSponsorTierChange(sponsor: Sponsor, isEdit: boolean = false): void {
     const form = isEdit ? this.editEventForm : this.eventForm;
-    const tier = (form.sponsorshipTiers || []).find((t: SponsorTier) => (t.name || '(Unnamed Tier)') === sponsor.tier);
+    const normalizedTier = (sponsor.tier || '').trim().toLowerCase();
+
+    const tier = (form.sponsorshipTiers || []).find((t: SponsorTier) =>
+      (t.name || '').trim().toLowerCase() === normalizedTier
+    );
+
     if (tier) {
+      sponsor.tier = tier.name; // Sync EXACT name from tier definition for absolute identity match
       sponsor.price = tier.price;
       sponsor.gstPercent = tier.gstPercent;
       sponsor.totalPrice = tier.totalPrice;
+
+      // Refresh all lists since this selection affects occupancy for others
+      this.refreshSponsorTierLists(isEdit);
     }
+  }
+
+  onTierPropertyChange(index: number, isEdit: boolean = false, oldName?: string): void {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const tier = form.sponsorshipTiers[index];
+    if (!tier) return;
+
+    // Recalculate tier total first
+    this.calculateTierTotal(tier);
+
+    const newName = (tier.name || '').trim();
+    const normalizedOldName = (oldName || '').trim().toLowerCase();
+
+    // Sync all sponsors assigned to this tier
+    (form.sponsors || []).forEach((sponsor: Sponsor) => {
+      const sponsorTier = (sponsor.tier || '').trim().toLowerCase();
+
+      // Handle Rename: if name changed, update the sponsor's tier reference
+      if (oldName !== undefined && sponsorTier === normalizedOldName) {
+        sponsor.tier = newName || '(Unnamed Tier)';
+      }
+
+      // Update pricing if assigned to this tier
+      if ((sponsor.tier || '').trim().toLowerCase() === (newName || '(Unnamed Tier)').toLowerCase()) {
+        sponsor.price = tier.price;
+        sponsor.gstPercent = tier.gstPercent;
+        sponsor.totalPrice = tier.totalPrice;
+      }
+    });
+
+    this.syncAvailableTiers(isEdit);
   }
 
   // Track which fields have been touched/interacted with
@@ -1387,10 +1482,12 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       totalPrice: 0,
     };
     this.eventForm.sponsors.push(newSponsor);
+    this.refreshSponsorTierLists(false);
   }
 
   removeSponsor(index: number): void {
     this.eventForm.sponsors.splice(index, 1);
+    this.refreshSponsorTierLists(false);
   }
 
   onSponsorLogoChange(event: any, index: number): void {
@@ -2239,6 +2336,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       sponsors: false,
       speakers: false,
     };
+    this.syncAvailableTiers(false);
   }
 
   viewEvent(event: Event): void {
@@ -2285,10 +2383,12 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       contactEmail: '',
     };
     this.editEventForm.sponsors.push(newSponsor);
+    this.refreshSponsorTierLists(true);
   }
 
   removeEditSponsor(index: number): void {
     this.editEventForm.sponsors.splice(index, 1);
+    this.refreshSponsorTierLists(true);
   }
 
   addEditSpeaker(): void {
@@ -2488,6 +2588,7 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       speakers: false,
     };
 
+    this.syncAvailableTiers(true);
     this.showEditModal();
   }
 

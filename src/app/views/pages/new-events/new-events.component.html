@@ -611,23 +611,24 @@
                       <td>
                         <input type="text" class="form-control form-control-sm" [(ngModel)]="tier.name"
                           [name]="'tierName' + i" placeholder="e.g. Main Sponsor"
-                          (ngModelChange)="syncAvailableTiers(false)" />
+                          (ngModelChange)="onTierPropertyChange(i, false, tier._oldName); tier._oldName = tier.name"
+                          (focus)="tier._oldName = tier.name" />
                       </td>
                       <td>
                         <input type="number" class="form-control form-control-sm" [(ngModel)]="tier.slots"
-                          [name]="'tierSlots' + i" min="1" />
+                          [name]="'tierSlots' + i" min="1" (input)="onTierPropertyChange(i, false)" />
                       </td>
                       <td>
                         <div class="input-group input-group-sm">
                           <span class="input-group-text">$</span>
                           <input type="number" class="form-control" [(ngModel)]="tier.price" [name]="'tierPrice' + i"
-                            (input)="calculateTierTotal(tier)" />
+                            (input)="onTierPropertyChange(i, false)" />
                         </div>
                       </td>
                       <td>
                         <div class="input-group input-group-sm">
                           <input type="number" class="form-control" [(ngModel)]="tier.gstPercent" [name]="'tierGst' + i"
-                            (input)="calculateTierTotal(tier)" />
+                            (input)="onTierPropertyChange(i, false)" />
                           <span class="input-group-text">%</span>
                         </div>
                       </td>
@@ -687,9 +688,19 @@
                     </div>
                     <div class="col-md-6 mb-3">
                       <label class="form-label">Tier <span class="text-danger">*</span></label>
-                      <ng-select [items]="getAvailableTiers()" [(ngModel)]="sponsor.tier" [name]="'sponsorTier' + i"
-                        placeholder="Select tier" required (blur)="onFieldBlur('sponsor_tier_' + i, false, i)"
-                        (change)="onSponsorTierChange(sponsor)" [searchable]="true" [clearable]="true">
+                      <ng-select [items]="createSponsorTierLists[i] || availableTiers" [(ngModel)]="sponsor.tier"
+                        [name]="'sponsorTier' + i" placeholder="Select tier" required
+                        (blur)="onFieldBlur('sponsor_tier_' + i, false, i)" (change)="onSponsorTierChange(sponsor)"
+                        [searchable]="true" [clearable]="true" [compareWith]="compareTiers"
+                        [class.is-invalid]="validationErrors['sponsor_' + i + '_tier']">
+                        <ng-template ng-option-tmp let-item="item">
+                          <div class="d-flex justify-content-between">
+                            <span>{{item}}</span>
+                            <small class="text-muted" *ngIf="getRemainingSlots(item, false, i) !== null">
+                              ({{getRemainingSlots(item, false, i)}} left)
+                            </small>
+                          </div>
+                        </ng-template>
                       </ng-select>
                       <div class="invalid-feedback" *ngIf="validationErrors['sponsor_' + i + '_tier']">
                         {{ validationErrors["sponsor_" + i + "_tier"] }}
@@ -702,7 +713,7 @@
                     <div class="col-md-4 mb-2">
                       <label class="form-label small fw-bold">Charges (Base)</label>
                       <div class="input-group input-group-sm">
-                        <span class="input-group-text">₹</span>
+                        <span class="input-group-text">$</span>
                         <input type="number" class="form-control" [(ngModel)]="sponsor.price"
                           [name]="'sponsorPrice' + i" placeholder="0" />
                       </div>
@@ -718,7 +729,7 @@
                     <div class="col-md-4 mb-2">
                       <label class="form-label small fw-bold">Total Amount</label>
                       <div class="input-group input-group-sm">
-                        <span class="input-group-text">₹</span>
+                        <span class="input-group-text">$</span>
                         <input type="number" class="form-control fw-bold text-primary" [(ngModel)]="sponsor.totalPrice"
                           [name]="'sponsorTotal' + i" readonly />
                       </div>
@@ -1534,23 +1545,24 @@
                       <td>
                         <input type="text" class="form-control form-control-sm" [(ngModel)]="tier.name"
                           [name]="'editTierName' + i" placeholder="e.g. Main Sponsor"
-                          (ngModelChange)="syncAvailableTiers(true)" />
+                          (ngModelChange)="onTierPropertyChange(i, true, tier._oldName); tier._oldName = tier.name"
+                          (focus)="tier._oldName = tier.name" />
                       </td>
                       <td>
                         <input type="number" class="form-control form-control-sm" [(ngModel)]="tier.slots"
-                          [name]="'editTierSlots' + i" min="1" />
+                          [name]="'editTierSlots' + i" min="1" (input)="onTierPropertyChange(i, true)" />
                       </td>
                       <td>
                         <div class="input-group input-group-sm">
                           <span class="input-group-text">$</span>
                           <input type="number" class="form-control" [(ngModel)]="tier.price"
-                            [name]="'editTierPrice' + i" (input)="calculateTierTotal(tier)" />
+                            [name]="'editTierPrice' + i" (input)="onTierPropertyChange(i, true)" />
                         </div>
                       </td>
                       <td>
                         <div class="input-group input-group-sm">
                           <input type="number" class="form-control" [(ngModel)]="tier.gstPercent"
-                            [name]="'editTierGst' + i" (input)="calculateTierTotal(tier)" />
+                            [name]="'editTierGst' + i" (input)="onTierPropertyChange(i, true)" />
                           <span class="input-group-text">%</span>
                         </div>
                       </td>
@@ -1612,10 +1624,19 @@
                     </div>
                     <div class="col-md-6 mb-3">
                       <label class="form-label">Tier <span class="text-danger">*</span></label>
-                      <ng-select [items]="getAvailableTiers(true)" [(ngModel)]="sponsor.tier"
+                      <ng-select [items]="editSponsorTierLists[i] || availableEditTiers" [(ngModel)]="sponsor.tier"
                         [name]="'editSponsorTier' + i" placeholder="Select tier" required
                         (blur)="onFieldBlur('sponsor_tier_' + i, true, i)" (change)="onSponsorTierChange(sponsor, true)"
-                        [searchable]="true" [clearable]="true">
+                        [searchable]="true" [clearable]="true" [compareWith]="compareTiers"
+                        [class.is-invalid]="editValidationErrors['sponsor_' + i + '_tier']">
+                        <ng-template ng-option-tmp let-item="item">
+                          <div class="d-flex justify-content-between">
+                            <span>{{item}}</span>
+                            <small class="text-muted" *ngIf="getRemainingSlots(item, true, i) !== null">
+                              ({{getRemainingSlots(item, true, i)}} left)
+                            </small>
+                          </div>
+                        </ng-template>
                       </ng-select>
                       <div class="invalid-feedback" *ngIf="editValidationErrors['sponsor_' + i + '_tier']">
                         {{ editValidationErrors["sponsor_" + i + "_tier"] }}
@@ -1628,7 +1649,7 @@
                     <div class="col-md-4 mb-2">
                       <label class="form-label small fw-bold">Charges (Base)</label>
                       <div class="input-group input-group-sm">
-                        <span class="input-group-text">₹</span>
+                        <span class="input-group-text">$</span>
                         <input type="number" class="form-control" [(ngModel)]="sponsor.price"
                           [name]="'editSponsorPrice' + i" placeholder="0" />
                       </div>
@@ -1644,7 +1665,7 @@
                     <div class="col-md-4 mb-2">
                       <label class="form-label small fw-bold">Total Amount</label>
                       <div class="input-group input-group-sm">
-                        <span class="input-group-text">₹</span>
+                        <span class="input-group-text">$</span>
                         <input type="number" class="form-control fw-bold text-primary" [(ngModel)]="sponsor.totalPrice"
                           [name]="'editSponsorTotal' + i" readonly />
                       </div>
