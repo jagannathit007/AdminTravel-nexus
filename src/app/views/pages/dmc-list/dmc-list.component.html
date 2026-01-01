@@ -1,0 +1,87 @@
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">DMC List Management</h5>
+                    <button class="btn btn-primary d-flex align-items-center" (click)="openAddModal()">
+                        <i class="fas fa-plus me-2"></i> Add New DMC
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="bg-light text-muted">
+                                <tr>
+                                    <th class="border-0">Title</th>
+                                    <th class="border-0">Created At</th>
+                                    <th class="border-0 text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let dmc of dmcLists">
+                                    <td class="fw-semibold">{{ dmc.title }}</td>
+                                    <td>{{ formatDate(dmc.createdAt) }}</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-light-primary me-2" (click)="openEditModal(dmc)"
+                                            title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light-danger" (click)="deleteDmc(dmc._id)"
+                                            title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr *ngIf="dmcLists.length === 0 && !loading">
+                                    <td colspan="3" class="text-center py-5 text-muted">
+                                        No DMC records found.
+                                    </td>
+                                </tr>
+                                <tr *ngIf="loading">
+                                    <td colspan="3" class="text-center py-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="dmcModal" tabindex="-1" aria-labelledby="dmcModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light border-0">
+                <h5 class="modal-title fw-bold" id="dmcModalLabel">{{ editMode ? 'Edit DMC' : 'Add New DMC' }}</h5>
+                <button type="button" class="btn-close" (click)="closeModal()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form (ngSubmit)="f.form.valid && saveDmc()" #f="ngForm" novalidate>
+                    <div class="mb-3">
+                        <label for="dmcTitle" class="form-label fw-semibold">DMC Title <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="dmcTitle" name="title" [(ngModel)]="newDmc.title"
+                            placeholder="Enter DMC title" required #title="ngModel"
+                            [class.is-invalid]="f.submitted && title.invalid">
+                        <div class="invalid-feedback" *ngIf="f.submitted && title.invalid">
+                            DMC Title is required
+                        </div>
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary py-2 fw-bold" [disabled]="loading">
+                            {{ loading ? 'Saving...' : (editMode ? 'Update DMC' : 'Create DMC') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

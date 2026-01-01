@@ -48,7 +48,7 @@ import { FinanceComponent } from './views/pages/financeModule/finance.component'
 import { ExpenseComponent } from './views/pages/expense/expense.component';
 import { AnalyticsComponent } from './views/pages/analytics/analytics.component';
 import { RegionsComponent } from './views/pages/regions/regions.component';
-import {BannerRatesComponent} from './views/pages/BannerRates/bannerRates.component';
+import { BannerRatesComponent } from './views/pages/BannerRates/bannerRates.component';
 import { PhotoCategoriesComponent } from './views/pages/PhotoCategory/photo-categories.component';
 
 
@@ -58,11 +58,12 @@ import { AdminComplaintComponent } from './views/pages/admin-complaint/admin-com
 import { AdminFeedbackComponent } from './views/pages/admin-feedback/admin-feedback.component';
 import { NewUserRegistrationComponent } from './views/pages/new-user-registration/new-user-registration.component';
 import { NewEventsComponent } from './views/pages/new-events/new-events.component';
-import {EventPaymentsComponent} from './views/pages/paymentStatus/payment.component';
+import { EventPaymentsComponent } from './views/pages/paymentStatus/payment.component';
 import { EventRegistrationListComponent } from './views/pages/event-registration-list/event-registration-list.component';
 import { BannerRequestsComponent } from './views/pages/bannerRequest/bannerRequest.component';
 import { CouponMasterComponent } from './views/pages/couponMaster/coupon-master.component';
 import { EventStallsComponent } from './views/pages/event-stalls/event-stalls.component';
+import { DmcListComponent } from './views/pages/dmc-list/dmc-list.component';
 
 
 export const routes: Routes = [
@@ -93,8 +94,8 @@ export const routes: Routes = [
       { path: 'otp', component: OtpRecordsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
 
       { path: 'city', component: CitiesComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-      {path:'regions', component: RegionsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-      {path:'photoCategories', component: PhotoCategoriesComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'regions', component: RegionsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'photoCategories', component: PhotoCategoriesComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       { path: 'leaderboard', component: LeaderboardComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       { path: 'referralReport', component: ReferralsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       { path: 'testimonialReport', component: TestimonialsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
@@ -116,22 +117,22 @@ export const routes: Routes = [
       {
         path: 'badgeManagement', component: BadgeManagementComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] },
       },
-      {path:'bannerRequest', component: BannerRequestsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] }},
-      {path:'couponMaster', component: CouponMasterComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] }},
+      { path: 'bannerRequest', component: BannerRequestsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'couponMaster', component: CouponMasterComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
 
 
       { path: 'finance', component: FinanceComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-{path:'payment', component: EventPaymentsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-{path:'event-registration-list', component: EventRegistrationListComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'payment', component: EventPaymentsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'event-registration-list', component: EventRegistrationListComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
 
-      {path:'complaint', component: AdminComplaintComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-      {path:'feedback', component: AdminFeedbackComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-      {path:'newUsersRegistration', component: NewUserRegistrationComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-      {path:'newEvents', component: NewEventsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-      {path:'event-stalls', component: EventStallsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'complaint', component: AdminComplaintComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'feedback', component: AdminFeedbackComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'newUsersRegistration', component: NewUserRegistrationComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'newEvents', component: NewEventsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'event-stalls', component: EventStallsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
 
 
-{path:'analytics', component: AnalyticsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'analytics', component: AnalyticsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
 
       { path: 'askManagement', component: AskManagementComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       { path: 'leadManagement', component: LeadManagementComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
@@ -139,9 +140,10 @@ export const routes: Routes = [
       { path: 'LTPoints', component: LTPointsComponent, canActivate: [RoleGuard], data: { roles: ['LT', 'admin'] } },
       { path: 'finance', component: FinanceComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
 
-{path: 'podcastBooking', component: BookingsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-{path: 'expense', component: ExpenseComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-{path:'bannerRates',component: BannerRatesComponent,canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } } 
+      { path: 'podcastBooking', component: BookingsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'expense', component: ExpenseComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'bannerRates', component: BannerRatesComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'dmc-list', component: DmcListComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } }
     ],
   },
 ];

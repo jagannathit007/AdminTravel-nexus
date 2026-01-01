@@ -1,0 +1,65 @@
+.card {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.card-header {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.btn-light-primary {
+  color: #0d6efd;
+  background-color: #e7f1ff;
+  border: none;
+}
+
+.btn-light-primary:hover {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.btn-light-danger {
+  color: #dc3545;
+  background-color: #fee2e2;
+  border: none;
+}
+
+.btn-light-danger:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+.table thead th {
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 1rem;
+}
+
+.table tbody td {
+  padding: 1rem;
+}
+
+.form-control:focus {
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
+  border-color: #0d6efd;
+}
+
+.modal-content {
+  border-radius: 15px;
+}
+
+.modal-header {
+  border-radius: 15px 15px 0 0;
+}
+
+.pagination-controls ::ng-deep .ngx-pagination .current {
+  background: #0d6efd;
+  border-radius: 4px;
+}
+
+.pagination-controls ::ng-deep .ngx-pagination a:hover {
+  background: #e7f1ff;
+  border-radius: 4px;
+  color: #0d6efd;
+}

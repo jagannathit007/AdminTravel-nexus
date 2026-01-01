@@ -7,8 +7,8 @@ import { title } from 'process';
   providedIn: 'root',
 })
 export class SideBarService {
-  constructor(private router: Router) {}
-  ngOnInit(): void {}
+  constructor(private router: Router) { }
+  ngOnInit(): void { }
 
   list: any[] = [
     {
@@ -62,9 +62,9 @@ export class SideBarService {
           icon: 'calendar',
         },
         {
-          title:'Event Registration',
-          link:'payment',
-          icon:'p'
+          title: 'Event Registration',
+          link: 'payment',
+          icon: 'p'
         },
         {
           title: 'Travel Ask Management',
@@ -91,7 +91,7 @@ export class SideBarService {
         //       link: 'eventRegistration',
         //       icon: 'calendar-check',
         //     },
-            
+
         //     {
         //       title: 'Participation',
         //       link: 'participation',
@@ -124,30 +124,36 @@ export class SideBarService {
               link: 'city',
               icon: 'map-pin',
             },
-            { title: 'Regions',
+            {
+              title: 'Regions',
               link: 'regions',
               icon: 'map-signs',
             },
             {
-              title:'Banner rates',
-              link:'bannerRates',
-              icon:'advertisement'
+              title: 'Banner rates',
+              link: 'bannerRates',
+              icon: 'advertisement'
             },
             {
-              title:'Banner Request',
-              link:'bannerRequest',
-              icon:'banner'
+              title: 'Banner Request',
+              link: 'bannerRequest',
+              icon: 'banner'
             },
             {
-              title:'Coupon Master',
-              link:'couponMaster',
-              icon:'ticket-perforated'
+              title: 'Coupon Master',
+              link: 'couponMaster',
+              icon: 'ticket-perforated'
             },
 
             {
               title: 'Brand Templates',
               link: 'photoCategories',
               icon: 'image',
+            },
+            {
+              title: 'DMC List',
+              link: 'dmc-list',
+              icon: 'list',
             },
             // {
             //   title: 'Chapters',
@@ -216,11 +222,11 @@ export class SideBarService {
         //       link: 'attendanceRecord',
         //       icon: 'clipboard',
         //     },
-            // {
-            //   title: 'Fees Record',
-            //   link: 'fees',
-            //   icon: 'credit-card',
-            // },
+        // {
+        //   title: 'Fees Record',
+        //   link: 'fees',
+        //   icon: 'credit-card',
+        // },
         //   ]
         // },
         {
@@ -300,7 +306,7 @@ export class SideBarService {
         //       icon: 'clipboard-list',
         //     },
 
-            
+
 
 
         //   ]
