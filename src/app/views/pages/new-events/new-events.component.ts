@@ -228,9 +228,9 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
 
   // Coupon properties
   coupons: Coupon[] = [];
-  defaultSponsorTiers: string[] = ['Platinum', 'Gold', 'Silver', 'Bronze'];
-  availableTiers: string[] = ['Platinum', 'Gold', 'Silver', 'Bronze'];
-  availableEditTiers: string[] = ['Platinum', 'Gold', 'Silver', 'Bronze'];
+  defaultSponsorTiers: string[] = [];
+  availableTiers: string[] = [];
+  availableEditTiers: string[] = [];
   createSponsorTierLists: string[][] = [];
   editSponsorTierLists: string[][] = [];
   loadingCoupons: boolean = false;
@@ -338,6 +338,24 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
   removeSponsorTier(index: number, isEdit: boolean = false): void {
     const form = isEdit ? this.editEventForm : this.eventForm;
     const tiers = [...(form.sponsorshipTiers || [])];
+
+    // Get the tier to be removed
+    const tierToRemove = tiers[index];
+
+    if (tierToRemove && tierToRemove.name) {
+      const removedTierName = tierToRemove.name.trim().toLowerCase();
+
+      // Clear this tier from any sponsors that have selected it
+      (form.sponsors || []).forEach((sponsor: Sponsor) => {
+        if ((sponsor.tier || '').trim().toLowerCase() === removedTierName) {
+          sponsor.tier = '';
+          sponsor.price = 0;
+          sponsor.gstPercent = 18;
+          sponsor.totalPrice = 0;
+        }
+      });
+    }
+
     tiers.splice(index, 1);
     form.sponsorshipTiers = tiers;
     this.syncAvailableTiers(isEdit);
@@ -352,9 +370,10 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     const form = isEdit ? this.editEventForm : this.eventForm;
     const price = type === 'B2B' ? parseFloat(form.b2bTicketPrice) || 0 : parseFloat(form.b2cTicketPrice) || 0;
     const gst = type === 'B2B' ? parseFloat(form.b2bGstPercent) || 0 : parseFloat(form.b2cGstPercent) || 0;
+    const stayFee = type === 'B2B' ? parseFloat(form.b2bStayFee) || 0 : parseFloat(form.b2cStayFee) || 0;
 
-    // Add GST to price: Total = Price + (Price * GST / 100)
-    const finalAmount = price + (price * gst / 100);
+    // Total = Price + (Price * GST / 100) + Stay Fee
+    const finalAmount = price + (price * gst / 100) + stayFee;
 
     if (type === 'B2B') {
       form.b2bFinalAmount = finalAmount;
@@ -935,8 +954,8 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     const b2cSeats = parseInt(form.b2cTotalSeats) || 0;
     const capacity = parseInt(form.capacity) || 0;
 
-    if (b2bSeats + b2cSeats > capacity) {
-      errors.seats = `Total seats (${b2bSeats + b2cSeats}) cannot exceed capacity (${capacity})`;
+    if (b2bSeats + b2cSeats != capacity) {
+      errors.seats = `Total seats (${b2bSeats + b2cSeats}) is not equal to capacity (${capacity})`;
       return false;
     }
 
