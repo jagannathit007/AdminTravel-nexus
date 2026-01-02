@@ -64,6 +64,10 @@ import { BannerRequestsComponent } from './views/pages/bannerRequest/bannerReque
 import { CouponMasterComponent } from './views/pages/couponMaster/coupon-master.component';
 import { EventStallsComponent } from './views/pages/event-stalls/event-stalls.component';
 import { DmcListComponent } from './views/pages/dmc-list/dmc-list.component';
+import { RegistrationReportComponent } from './views/pages/reports/registration-report/registration-report.component';
+import { PaymentReportComponent } from './views/pages/reports/payment-report/payment-report.component';
+import { StallBookingReportComponent } from './views/pages/reports/stall-booking-report/stall-booking-report.component';
+import { OneToOneReportComponent } from './views/pages/reports/one-to-one-report/one-to-one-report.component';
 
 
 export const routes: Routes = [
@@ -143,7 +147,11 @@ export const routes: Routes = [
       { path: 'podcastBooking', component: BookingsComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       { path: 'expense', component: ExpenseComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       { path: 'bannerRates', component: BannerRatesComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-      { path: 'dmc-list', component: DmcListComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } }
+      { path: 'dmc-list', component: DmcListComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'reports/registration', component: RegistrationReportComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'reports/payment', component: PaymentReportComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'reports/stall-booking', component: StallBookingReportComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'reports/one-to-one', component: OneToOneReportComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } }
     ],
   },
 ];

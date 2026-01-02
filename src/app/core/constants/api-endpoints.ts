@@ -270,6 +270,12 @@ class ApiEndpoints {
   public UPDATE_DMC_LIST = `${this.PATH}/dmc/update`;
   public DELETE_DMC_LIST = `${this.PATH}/dmc/delete`;
 
+  // ReportsEndpoints
+  public GET_REGISTRATION_REPORT: string = `${this.PATH}/event/reports/registration`;
+  public GET_PAYMENT_REPORT: string = `${this.PATH}/event/reports/payment`;
+  public GET_STALL_REPORT: string = `${this.PATH}/event/reports/stalls`;
+  public GET_ONE_TO_ONE_REPORT: string = `${this.PATH}/event/reports/one-to-one`;
+
 };
 
 export let apiEndpoints = new ApiEndpoints();

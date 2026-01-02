@@ -527,6 +527,14 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     totalStalls: false,
     sponsors: false,
     speakers: false,
+    b2bTicketPrice: false,
+    b2bStayFee: false,
+    b2bTotalSeats: false,
+    b2bGstPercent: false,
+    b2cTicketPrice: false,
+    b2cStayFee: false,
+    b2cTotalSeats: false,
+    b2cGstPercent: false,
   };
 
   editTouchedFields: any = {};
@@ -547,6 +555,14 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     totalStalls: '',
     sponsors: '',
     speakers: '',
+    b2bTicketPrice: '',
+    b2bStayFee: '',
+    b2bTotalSeats: '',
+    b2bGstPercent: '',
+    b2cTicketPrice: '',
+    b2cStayFee: '',
+    b2cTotalSeats: '',
+    b2cGstPercent: '',
   };
 
   editValidationErrors: any = {};
@@ -976,6 +992,98 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     }
     errors.organizerId = '';
     return true;
+  }
+
+  validateB2BPricing(isEdit: boolean = false): boolean {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const touched = isEdit ? this.editTouchedFields : this.touchedFields;
+    const errors = isEdit ? this.editValidationErrors : this.validationErrors;
+
+    let isValid = true;
+
+    if (touched.b2bTicketPrice || touched.b2bTicketPrice === undefined) {
+      if (form.b2bTicketPrice === null || form.b2bTicketPrice === undefined || form.b2bTicketPrice === '') {
+        errors.b2bTicketPrice = 'Ticket price is required';
+        isValid = false;
+      } else {
+        errors.b2bTicketPrice = '';
+      }
+    }
+
+    if (touched.b2bStayFee || touched.b2bStayFee === undefined) {
+      if (form.b2bStayFee === null || form.b2bStayFee === undefined || form.b2bStayFee === '') {
+        errors.b2bStayFee = 'Stay fee is required';
+        isValid = false;
+      } else {
+        errors.b2bStayFee = '';
+      }
+    }
+
+    if (touched.b2bTotalSeats || touched.b2bTotalSeats === undefined) {
+      if (form.b2bTotalSeats === null || form.b2bTotalSeats === undefined || form.b2bTotalSeats === '') {
+        errors.b2bTotalSeats = 'Number of seats is required';
+        isValid = false;
+      } else {
+        errors.b2bTotalSeats = '';
+      }
+    }
+
+    if (touched.b2bGstPercent || touched.b2bGstPercent === undefined) {
+      if (form.b2bGstPercent === null || form.b2bGstPercent === undefined || form.b2bGstPercent === '') {
+        errors.b2bGstPercent = 'GST percent is required';
+        isValid = false;
+      } else {
+        errors.b2bGstPercent = '';
+      }
+    }
+
+    return isValid;
+  }
+
+  validateB2CPricing(isEdit: boolean = false): boolean {
+    const form = isEdit ? this.editEventForm : this.eventForm;
+    const touched = isEdit ? this.editTouchedFields : this.touchedFields;
+    const errors = isEdit ? this.editValidationErrors : this.validationErrors;
+
+    let isValid = true;
+
+    if (touched.b2cTicketPrice || touched.b2cTicketPrice === undefined) {
+      if (form.b2cTicketPrice === null || form.b2cTicketPrice === undefined || form.b2cTicketPrice === '') {
+        errors.b2cTicketPrice = 'Ticket price is required';
+        isValid = false;
+      } else {
+        errors.b2cTicketPrice = '';
+      }
+    }
+
+    if (touched.b2cStayFee || touched.b2cStayFee === undefined) {
+      if (form.b2cStayFee === null || form.b2cStayFee === undefined || form.b2cStayFee === '') {
+        errors.b2cStayFee = 'Stay fee is required';
+        isValid = false;
+      } else {
+        errors.b2cStayFee = '';
+      }
+    }
+
+    if (touched.b2cTotalSeats || touched.b2cTotalSeats === undefined) {
+      if (form.b2cTotalSeats === null || form.b2cTotalSeats === undefined || form.b2cTotalSeats === '') {
+        errors.b2cTotalSeats = 'Number of seats is required';
+        isValid = false;
+      } else {
+        errors.b2cTotalSeats = '';
+      }
+    }
+
+    if (touched.b2cGstPercent || touched.b2cGstPercent === undefined) {
+      if (form.b2cGstPercent === null || form.b2cGstPercent === undefined || form.b2cGstPercent === '') {
+        errors.b2cGstPercent = 'GST percent is required';
+        isValid = false;
+      } else {
+        errors.b2cGstPercent = '';
+      }
+    }
+
+    return isValid;
   }
 
   // Sponsor validation methods
@@ -1419,6 +1527,18 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
           break;
         case 'speakers':
           this.validateSpeakers(isEdit);
+          break;
+        case 'b2bTicketPrice':
+        case 'b2bStayFee':
+        case 'b2bTotalSeats':
+        case 'b2bGstPercent':
+          this.validateB2BPricing(isEdit);
+          break;
+        case 'b2cTicketPrice':
+        case 'b2cStayFee':
+        case 'b2cTotalSeats':
+        case 'b2cGstPercent':
+          this.validateB2CPricing(isEdit);
           break;
       }
     }
@@ -2067,6 +2187,14 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       this.touchedFields[`schedule_endDate_${index}`] = true;
       this.touchedFields[`schedule_endTime_${index}`] = true;
     });
+    this.touchedFields.b2bTicketPrice = true;
+    this.touchedFields.b2bStayFee = true;
+    this.touchedFields.b2bTotalSeats = true;
+    this.touchedFields.b2bGstPercent = true;
+    this.touchedFields.b2cTicketPrice = true;
+    this.touchedFields.b2cStayFee = true;
+    this.touchedFields.b2cTotalSeats = true;
+    this.touchedFields.b2cGstPercent = true;
   }
 
   markAllEditFieldsAsTouched(): void {
@@ -2096,6 +2224,14 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       this.editTouchedFields[`schedule_endDate_${index}`] = true;
       this.editTouchedFields[`schedule_endTime_${index}`] = true;
     });
+    this.editTouchedFields.b2bTicketPrice = true;
+    this.editTouchedFields.b2bStayFee = true;
+    this.editTouchedFields.b2bTotalSeats = true;
+    this.editTouchedFields.b2bGstPercent = true;
+    this.editTouchedFields.b2cTicketPrice = true;
+    this.editTouchedFields.b2cStayFee = true;
+    this.editTouchedFields.b2cTotalSeats = true;
+    this.editTouchedFields.b2cGstPercent = true;
   }
 
   validateFormForSubmission(): boolean {
@@ -2146,6 +2282,13 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
       isValid = false;
     }
 
+    if (!this.validateB2BPricing()) {
+      isValid = false;
+    }
+
+    if (!this.validateB2CPricing()) {
+      isValid = false;
+    }
 
     return isValid;
   }
@@ -2203,6 +2346,14 @@ export class NewEventsComponent implements OnInit, AfterViewInit {
     }
 
     if (!this.validateSchedules(true)) {
+      isValid = false;
+    }
+
+    if (!this.validateB2BPricing(true)) {
+      isValid = false;
+    }
+
+    if (!this.validateB2CPricing(true)) {
       isValid = false;
     }
 

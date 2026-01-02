@@ -1,0 +1,80 @@
+<div class="container-fluid p-0">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title mb-0">Event One-To-One Report</h4>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Search</label>
+                            <input type="text" class="form-control" [(ngModel)]="searchQuery" (input)="onSearch()"
+                                placeholder="Search by member name or topic...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div *ngIf="loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div *ngIf="!loading && oneToOnes?.data?.docs?.length === 0" class="text-center py-5">
+                        <p class="text-muted mb-0">No One-To-One meetings found.</p>
+                    </div>
+
+                    <div class="table-responsive" *ngIf="!loading && oneToOnes?.data?.docs?.length > 0">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Member 1</th>
+                                    <th>Member 2</th>
+                                    <th>Meeting Details</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    *ngFor="let item of oneToOnes.data.docs | paginate: { itemsPerPage: limit, currentPage: page, totalItems: oneToOnes.data.total }; let i = index">
+                                    <td>{{ (page - 1) * limit + i + 1 }}</td>
+                                    <td>
+                                        <div class="fw-bold">{{ item.member1?.name || 'Unknown' }}</div>
+                                        <div class="small text-muted">{{ item.member1?.business }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">{{ item.member2?.name || 'Unknown' }}</div>
+                                        <div class="small text-muted">{{ item.member2?.business }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="small"><strong>Place:</strong> {{ item.place || 'N/A' }}</div>
+                                        <div class="small text-truncate" style="max-width: 250px;"
+                                            [title]="item.topics">
+                                            <strong>Topic:</strong> {{ item.topics || 'N/A' }}
+                                        </div>
+                                    </td>
+                                    <td>{{ item.date | date:'medium' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <p class="text-muted mb-0">Showing {{ (page - 1) * limit + 1 }} - {{ (page - 1) * limit +
+                                oneToOnes.data.docs.length }} of {{ oneToOnes.data.total }} reports</p>
+                            <pagination-controls (pageChange)="changePage($event)"></pagination-controls>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

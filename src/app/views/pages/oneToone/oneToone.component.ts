@@ -30,14 +30,14 @@ export class OneToOneComponent implements OnInit {
     prevPage: null,
     nextPage: null
   };
-  
+
   chapters: Chapter[] = [];
   loading: boolean = false;
   chaptersLoading: boolean = false;
   exporting: boolean = false;
-  
+
   Math = Math;
-  
+
   filters = {
     page: 1,
     limit: 10,
@@ -45,13 +45,13 @@ export class OneToOneComponent implements OnInit {
     startDate: this.formatDateForInput(new Date(new Date().setDate(new Date().getDate() - 30))),
     endDate: this.formatDateForInput(new Date())
   };
-  
+
   paginationConfig = {
     id: 'one-to-one-pagination'
   };
-  
+
   private filterSubject = new Subject<void>();
-  
+
   constructor(
     private oneToOneService: OneToOneService,
     private chapterService: ChapterService,
@@ -78,11 +78,11 @@ export class OneToOneComponent implements OnInit {
         startDate: this.filters.startDate || undefined,
         endDate: this.filters.endDate || undefined
       };
-      
-      const response = await this.oneToOneService.getAllOneToOne(requestParams);
+
+      const response = await this.oneToOneService.getOneToOneReport(requestParams);
       this.oneToOnes = {
         ...response,
-        docs: response.docs.map(doc => ({
+        docs: response.docs.map((doc: any) => ({
           ...doc,
           memberId1: doc.memberId1 || { name: 'Unknown', chapter_name: 'N/A', profilePic: '' },
           memberId2: doc.memberId2 || { name: 'Unknown', chapter_name: 'N/A', profilePic: '' },
@@ -120,7 +120,7 @@ export class OneToOneComponent implements OnInit {
         limit: 1000,
         search: ''
       });
-      this.chapters = response.docs|| [];
+      this.chapters = response.docs || [];
     } catch (error) {
       console.error('Error fetching chapters:', error);
       swalHelper.showToast('Failed to fetch chapters', 'error');
@@ -161,8 +161,8 @@ export class OneToOneComponent implements OnInit {
     if (!dateString || isNaN(new Date(dateString).getTime())) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
-      year: 'numeric', 
-      month: 'short', 
+      year: 'numeric',
+      month: 'short',
       day: 'numeric',
     });
   }
@@ -184,9 +184,9 @@ export class OneToOneComponent implements OnInit {
         limit: 10000,
         page: 1
       };
-      
+
       const allData = await this.oneToOneService.getAllOneToOne(exportParams);
-      
+
       const exportData = allData.docs.map((oneToOne, index) => {
         return {
           'Sr No': index + 1,
@@ -200,7 +200,7 @@ export class OneToOneComponent implements OnInit {
           'Topics Of Conversation': oneToOne.topics || 'N/A'
         };
       });
-      
+
       const fileName = `OneToOne_Meetings_${this.formatDateForFileName(new Date())}`;
       await this.exportService.exportToExcel(exportData, fileName);
       swalHelper.showToast('Excel file downloaded successfully!', 'success');
@@ -222,9 +222,9 @@ export class OneToOneComponent implements OnInit {
         limit: 10000,
         page: 1
       };
-      
+
       const allData = await this.oneToOneService.getAllOneToOne(exportParams);
-      
+
       const fileName = `OneToOne_Meetings_${this.formatDateForFileName(new Date())}`;
       const columns = [
         { header: 'Sr No', dataKey: 'srNo' },
@@ -235,7 +235,7 @@ export class OneToOneComponent implements OnInit {
         { header: 'Meeting Date/Time', dataKey: 'meetingDateTime' },
         { header: 'Topics', dataKey: 'topics' }
       ];
-      
+
       const data = allData.docs.map((oneToOne, index) => {
         return {
           srNo: index + 1,
@@ -247,7 +247,7 @@ export class OneToOneComponent implements OnInit {
           topics: oneToOne.topics || ''
         };
       });
-      
+
       const title = 'One-to-One Meetings Report';
       let subtitle = 'All One-to-One Meetings';
       if (this.filters.chapter_name) {
@@ -256,7 +256,7 @@ export class OneToOneComponent implements OnInit {
       if (this.filters.startDate && this.filters.endDate) {
         subtitle += ` | Period: ${this.formatDate(this.filters.startDate)} to ${this.formatDate(this.filters.endDate)}`;
       }
-      
+
       await this.exportService.exportToPDF(columns, data, title, subtitle, fileName);
       swalHelper.showToast('PDF file downloaded successfully!', 'success');
     } catch (error) {

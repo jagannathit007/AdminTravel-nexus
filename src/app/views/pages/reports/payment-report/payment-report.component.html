@@ -1,0 +1,112 @@
+<div class="container-fluid p-0">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title mb-0">Payment Report</h4>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Select Event</label>
+                            <ng-select [items]="events" bindLabel="title" bindValue="_id" [(ngModel)]="selectedEventId"
+                                (change)="onFilterChange()" placeholder="Choose an event">
+                            </ng-select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Payment Status</label>
+                            <select class="form-select" [(ngModel)]="selectedPaymentStatus" (change)="onFilterChange()">
+                                <option *ngFor="let option of paymentStatusOptions" [value]="option.value">
+                                    {{option.label}}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Search</label>
+                            <input type="text" class="form-control" [(ngModel)]="searchQuery" (input)="onSearch()"
+                                placeholder="Search by name or transaction ID...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" *ngIf="selectedEventId">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div *ngIf="loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div *ngIf="!loading && registrations?.data?.docs?.length === 0" class="text-center py-5">
+                        <p class="text-muted mb-0">No payment records found for this event.</p>
+                    </div>
+
+                    <div class="table-responsive" *ngIf="!loading && registrations?.data?.docs?.length > 0">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>User</th>
+                                    <th>Transaction ID</th>
+                                    <th>Payment Method</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Status</th>
+                                    <th>Payment Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    *ngFor="let reg of registrations.data.docs | paginate: { itemsPerPage: limit, currentPage: page, totalItems: registrations.data.total }; let i = index">
+                                    <td>{{ (page - 1) * limit + i + 1 }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm me-2 bg-light rounded-circle d-flex align-items-center justify-content-center"
+                                                style="width: 32px; height: 32px;">
+                                                <i class="fas fa-user text-muted small"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ getUserName(reg) }}</div>
+                                                <small class="text-muted">{{ reg.email }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><code>{{ getTransactionId(reg) }}</code></td>
+                                    <td>{{ reg?.paymentMethod || 'N/A' }}</td>
+                                    <td>{{ getAmount(reg) | number:'1.2-2' }}</td>
+                                    <td>
+                                        <span class="badge" [ngClass]="getPaymentStatusClass(reg)">
+                                            {{ (reg?.paymentStatus || 'pending') | titlecase }}
+                                        </span>
+                                    </td>
+                                    <td>{{ reg?.paidAt | date:'mediumDate' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <p class="text-muted mb-0">Showing {{ (page - 1) * limit + 1 }} - {{ (page - 1) * limit +
+                                registrations.data.docs.length }} of {{ registrations.data.total }} records</p>
+                            <pagination-controls (pageChange)="changePage($event)"></pagination-controls>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5" *ngIf="!selectedEventId">
+        <div class="col-12 text-center py-5">
+            <div class="empty-state">
+                <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                <h5>Select an event to view payments</h5>
+                <p class="text-muted">Choose an event from the dropdown above to see its payment report.</p>
+            </div>
+        </div>
+    </div>
+</div>

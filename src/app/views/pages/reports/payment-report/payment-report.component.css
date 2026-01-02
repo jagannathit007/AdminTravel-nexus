@@ -1,0 +1,22 @@
+.card {
+    border-radius: 10px;
+}
+
+.table thead th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+.badge {
+    padding: 0.5em 0.8em;
+}
+
+.empty-state {
+    opacity: 0.6;
+}
+
+code {
+    color: #d63384;
+}

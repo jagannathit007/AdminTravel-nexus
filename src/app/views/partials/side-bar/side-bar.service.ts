@@ -315,6 +315,33 @@ export class SideBarService {
         // // link:'LTPoints',
         // // icon:'history'
         // }
+        {
+          title: 'Reports Section',
+          icon: 'file-text',
+          hasSubmenu: true,
+          submenu: [
+            {
+              title: 'Registration Report',
+              link: 'reports/registration',
+              icon: 'user-plus',
+            },
+            {
+              title: 'Payment Report',
+              link: 'reports/payment',
+              icon: 'credit-card',
+            },
+            {
+              title: 'Stall Booking Report',
+              link: 'reports/stall-booking',
+              icon: 'layout',
+            },
+            {
+              title: 'One-To-One Report',
+              link: 'reports/one-to-one',
+              icon: 'user-check',
+            },
+          ]
+        },
       ],
     },
   ];

@@ -1,0 +1,103 @@
+<div class="container-fluid p-0">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title mb-0">Registration Report</h4>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Select Event</label>
+                            <ng-select [items]="events" bindLabel="title" bindValue="_id" [(ngModel)]="selectedEventId"
+                                (change)="onFilterChange()" placeholder="Choose an event">
+                            </ng-select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+                                <option *ngFor="let option of statusOptions" [value]="option.value">{{option.label}}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Search</label>
+                            <input type="text" class="form-control" [(ngModel)]="searchQuery" (input)="onSearch()"
+                                placeholder="Search by name or email...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" *ngIf="selectedEventId">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div *ngIf="loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div *ngIf="!loading && registrations?.data?.docs?.length === 0" class="text-center py-5">
+                        <p class="text-muted mb-0">No registrations found for this event.</p>
+                    </div>
+
+                    <div class="table-responsive" *ngIf="!loading && registrations?.data?.docs?.length > 0">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Registered At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    *ngFor="let reg of registrations.data.docs | paginate: { itemsPerPage: limit, currentPage: page, totalItems: registrations.data.total }; let i = index">
+                                    <td>{{ (page - 1) * limit + i + 1 }}</td>
+                                    <td>{{ reg?.name || 'Unknown User' }}</td>
+                                    <td>{{ reg?.email || 'Unknown Email' }}</td>
+                                    <td>
+                                        <span class="badge" [ngClass]="reg.isSponsor ? 'bg-info' : 'bg-primary'">
+                                            {{ reg.category }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge"
+                                            [ngClass]="reg.status === 'confirmed' ? 'bg-success' : 'bg-warning'">
+                                            {{ reg?.status | titlecase }}
+                                        </span>
+                                    </td>
+                                    <td>{{ reg?.registeredAt | date:'mediumDate' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <p class="text-muted mb-0">Showing {{ (page - 1) * limit + 1 }} - {{ (page - 1) * limit +
+                                registrations.data.docs.length }} of {{ registrations.data.total }} registrations</p>
+                            <pagination-controls (pageChange)="changePage($event)"></pagination-controls>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5" *ngIf="!selectedEventId">
+        <div class="col-12 text-center py-5">
+            <div class="empty-state">
+                <i class="fas fa-calendar-alt fa-3x text-muted mb-3"></i>
+                <h5>Select an event to view registrations</h5>
+                <p class="text-muted">Choose an event from the dropdown above to see its registration report.</p>
+            </div>
+        </div>
+    </div>
+</div>

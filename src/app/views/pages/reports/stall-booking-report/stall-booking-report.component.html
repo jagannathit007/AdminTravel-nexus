@@ -1,0 +1,103 @@
+<div class="container-fluid p-0">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title mb-0">Stall Booking Report</h4>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Select Event</label>
+                            <ng-select [items]="events" bindLabel="title" bindValue="_id" [(ngModel)]="selectedEventId"
+                                (change)="fetchBookings()" placeholder="Choose an event">
+                            </ng-select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Booking Status</label>
+                            <select class="form-select" [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+                                <option *ngFor="let option of statusOptions" [value]="option.value">
+                                    {{option.label}}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Search</label>
+                            <input type="text" class="form-control" [(ngModel)]="searchQuery" (input)="onSearch()"
+                                placeholder="Search by business, email or stall #...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" *ngIf="selectedEventId">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div *ngIf="loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div *ngIf="!loading && bookings?.data?.docs?.length === 0" class="text-center py-5">
+                        <p class="text-muted mb-0">No stall bookings found for this event with applied filters.</p>
+                    </div>
+
+                    <div class="table-responsive" *ngIf="!loading && bookings?.data?.docs?.length > 0">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Stall #</th>
+                                    <th>Business Name</th>
+                                    <th>Contact</th>
+                                    <th>Price (₹)</th>
+                                    <th>Status</th>
+                                    <th>Booked At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    *ngFor="let booking of bookings.data.docs | paginate: { itemsPerPage: limit, currentPage: page, totalItems: bookings.data.total }; let i = index">
+                                    <td>{{ (page - 1) * limit + i + 1 }}</td>
+                                    <td><strong>{{ booking?.stallNumber || 'N/A' }}</strong></td>
+                                    <td>{{ booking.businessName }}</td>
+                                    <td>
+                                        <div class="small">{{ booking.email }}</div>
+                                        <div class="small text-muted">{{ booking.contactNumber }}</div>
+                                    </td>
+                                    <td>{{ booking?.price || 0 | number }}</td>
+                                    <td>
+                                        <span class="badge" [ngClass]="getStatusClass(booking.status)">
+                                            {{ booking.status | titlecase }}
+                                        </span>
+                                    </td>
+                                    <td>{{ booking.bookedAt | date:'mediumDate' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <p class="text-muted mb-0">Showing {{ (page - 1) * limit + 1 }} - {{ (page - 1) * limit +
+                                bookings.data.docs.length }} of {{ bookings.data.total }} stall bookings</p>
+                            <pagination-controls (pageChange)="changePage($event)"></pagination-controls>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5" *ngIf="!selectedEventId">
+        <div class="col-12 text-center py-5">
+            <div class="empty-state">
+                <i class="fas fa-store fa-3x text-muted mb-3"></i>
+                <h5>Select an event to view stall bookings</h5>
+                <p class="text-muted">Choose an event from the dropdown above to see its stall booking report.</p>
+            </div>
+        </div>
+    </div>
+</div>

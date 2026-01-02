@@ -1323,6 +1323,71 @@ export class EventService {
     }
   }
 
+  async getRegistrationReport(eventId: string, page: number = 1, limit: number = 10, status?: string, search: string = "", registrationType?: string): Promise<any> {
+    try {
+      this.getHeaders();
+      const response = await this.apiManager.request(
+        {
+          url: `${apiEndpoints.GET_REGISTRATION_REPORT}?page=${page}&limit=${limit}`,
+          method: 'POST',
+        },
+        { eventId, page, limit, status, search, registrationType },
+        this.headers
+      );
+      return response;
+    } catch (error) {
+      console.error('Get Registration Report Error:', error);
+      swalHelper.showToast('Failed to fetch registration report', 'error');
+      throw error;
+    }
+  }
+
+  async getPaymentReport(eventId: string, page: number = 1, limit: number = 10, paymentStatus?: string, search: string = ""): Promise<any> {
+    try {
+      this.getHeaders();
+      const response = await this.apiManager.request(
+        {
+          url: `${apiEndpoints.GET_PAYMENT_REPORT}?page=${page}&limit=${limit}`,
+          method: 'POST',
+        },
+        { eventId, page, limit, paymentStatus, search },
+        this.headers
+      );
+      return response;
+    } catch (error) {
+      console.error('Get Payment Report Error:', error);
+      swalHelper.showToast('Failed to fetch payment report', 'error');
+      throw error;
+    }
+  }
+
+  async getStallBookingReport(params: { eventId: string, page?: number, limit?: number, status?: string, search?: string }): Promise<any> {
+    try {
+      this.getHeaders();
+      const queryParams = [];
+      if (params.page) queryParams.push(`page=${params.page}`);
+      if (params.limit) queryParams.push(`limit=${params.limit}`);
+
+      const url = queryParams.length > 0
+        ? `${apiEndpoints.GET_STALL_REPORT}?${queryParams.join('&')}`
+        : apiEndpoints.GET_STALL_REPORT;
+
+      const response = await this.apiManager.request(
+        {
+          url: url,
+          method: 'POST',
+        },
+        params,
+        this.headers
+      );
+      return response;
+    } catch (error) {
+      console.error('Get Stall Booking Report Error:', error);
+      swalHelper.showToast('Failed to fetch stall booking report', 'error');
+      throw error;
+    }
+  }
+
   /**
    * Approve, reject, or cancel a stall booking
    * @param requestData - Object containing eventId, stallId, bookingId, and action
@@ -3051,6 +3116,34 @@ export class OneToOneService {
     } catch (error) {
       console.error('API Error:', error);
       swalHelper.showToast('Failed to fetch One-to-One meetings', 'error');
+      throw error;
+    }
+  }
+
+  async getOneToOneReport(params: any): Promise<any> {
+    try {
+      this.getHeaders();
+      const page = params.page || 1;
+      const limit = params.limit || 10;
+
+      // Create query params for pagination
+      const paginationParams = `page=${page}&limit=${limit}`;
+
+      const url = `${apiEndpoints.GET_ONE_TO_ONE_REPORT}?${paginationParams}`;
+
+      const response = await this.apiManager.request(
+        {
+          url: url,
+          method: 'POST',
+        },
+        params,
+        this.headers
+      );
+
+      return response;
+    } catch (error) {
+      console.error('Get One-to-One Report Error:', error);
+      swalHelper.showToast('Failed to fetch one-to-one report', 'error');
       throw error;
     }
   }
