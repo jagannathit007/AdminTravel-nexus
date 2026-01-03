@@ -1,9 +1,18 @@
-import { Component, OnInit, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  AfterViewInit,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { NgxPaginationModule } from 'ngx-pagination';
-import { RegisterUserAuthService, User } from '../../../services/auth.service';
+import {
+  DmcListService,
+  RegisterUserAuthService,
+  User,
+} from '../../../services/auth.service';
 import { CountryService, Country } from '../../../services/auth.service';
 import { StateService, State } from '../../../services/auth.service';
 import { CityService, City } from '../../../services/auth.service';
@@ -30,9 +39,12 @@ interface Registration {
   business_type: string; // Added business_type
   isMember: boolean;
   regions: RegionObject[];
-    business?: { business_name: string; business_type: string; primary_business: boolean }[];
+  business?: {
+    business_name: string;
+    business_type: string;
+    primary_business: boolean;
+  }[];
   dmc_specializations: string[];
-  services_offered: string[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -77,9 +89,18 @@ interface Region {
   selector: 'app-new-user-registration',
   standalone: true,
   imports: [CommonModule, FormsModule, NgSelectModule, NgxPaginationModule],
-  providers: [RegisterUserAuthService, CountryService, StateService, CityService, RegionService, AuthService, DashboardService],
+  providers: [
+    RegisterUserAuthService,
+    CountryService,
+    StateService,
+    CityService,
+    RegionService,
+    AuthService,
+    DashboardService,
+    DmcListService,
+  ],
   templateUrl: './new-user-registration.component.html',
-  styleUrls: ['./new-user-registration.component.css']
+  styleUrls: ['./new-user-registration.component.css'],
 })
 export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   registerForm: any = {
@@ -93,29 +114,19 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     business_type: '', // Added business_type
     regions: [],
     dmc_specializations: [],
-    services_offered: []
   };
 
   countries: Country[] = [];
   states: State[] = [];
   cities: City[] = [];
   regions: Region[] = [];
-  
+
   // Predefined business types
-  businessTypes: string[] = ['B2B', 'B2C'];
+  businessTypes: string[] = ['B2B', 'B2C', 'Both'];
 
   // Predefined specializations array
-  specializations: string[] = [
-    'MICE', 'Adventure', 'Luxury', 'Cultural', 'Corporate',
-    'Leisure', 'Educational', 'Medical', 'Religious', 'Eco-Tourism'
-  ];
+  specializations: any[] = [];
 
-  // Predefined services array
-  servicesOffered: string[] = [
-    'Hotel Booking', 'Transportation', 'Guided Tours', 'Event Management',
-    'Airport Transfers', 'Visa Assistance', 'Travel Insurance', 'Custom Packages'
-  ];
-  
   registrations: RegistrationData = {
     docs: [],
     totalDocs: 0,
@@ -126,13 +137,14 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     hasPrevPage: false,
     pagingCounter: 1,
     prevPage: null,
-    nextPage: null
+    nextPage: null,
   };
 
   loading: boolean = false;
   countriesLoading: boolean = false;
   statesLoading: boolean = false;
   citiesLoading: boolean = false;
+  dmcLoading: boolean = false;
   regionsLoading: boolean = false;
   registrationsLoading: boolean = false;
   acceptingUser: string = '';
@@ -147,11 +159,11 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   payload = {
     search: '',
     page: 1,
-    limit: 10
+    limit: 10,
   };
 
   paginationConfig = {
-    id: 'registrations-pagination'
+    id: 'registrations-pagination',
   };
 
   // Track which fields have been touched/interacted with
@@ -166,7 +178,6 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     business_type: false, // Added business_type
     regions: false,
     dmc_specializations: false,
-    services_offered: false
   };
 
   // Validation error messages
@@ -181,7 +192,6 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     business_type: '', // Added business_type
     regions: '',
     dmc_specializations: '',
-    services_offered: ''
   };
 
   Math = Math;
@@ -201,6 +211,7 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   constructor(
     private registerService: RegisterUserAuthService,
     private countryService: CountryService,
+    private dmcListService: DmcListService,
     private stateService: StateService,
     private cityService: CityService,
     private regionService: RegionService,
@@ -217,6 +228,7 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     // Only fetch regions initially - countries, states, cities will be fetched based on selections
     this.fetchRegions();
     this.fetchRegistrations();
+    this.fetchDmcLists();
   }
 
   ngAfterViewInit(): void {
@@ -225,7 +237,8 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       if (modalElement) {
         this.registerModal = new bootstrap.Modal(modalElement);
       }
-      const userDetailsModalElement = document.getElementById('userDetailsModal');
+      const userDetailsModalElement =
+        document.getElementById('userDetailsModal');
       if (userDetailsModalElement) {
         this.userDetailsModal = new bootstrap.Modal(userDetailsModalElement);
       }
@@ -243,14 +256,14 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       const requestParams: any = {
         page: 1,
         limit: 1000,
-        search: ''
+        search: '',
       };
-      
+
       // If regions are selected, filter countries by those regions
       if (regionIds && regionIds.length > 0) {
         requestParams.regions = regionIds;
       }
-      
+
       const response = await this.countryService.getAllCountries(requestParams);
       this.countries = response.docs;
       this.countriesLoaded = true;
@@ -263,26 +276,29 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     }
   }
 
-  async fetchStates(countryNameOrId?: string, regionIds?: string[]): Promise<void> {
+  async fetchStates(
+    countryNameOrId?: string,
+    regionIds?: string[]
+  ): Promise<void> {
     this.statesLoading = true;
     this.statesLoaded = false;
     try {
       const requestParams: any = {
         page: 1,
         limit: 1000,
-        search: ''
+        search: '',
       };
-      
+
       // If country is selected, filter states by that country
       if (countryNameOrId) {
         requestParams.country = countryNameOrId;
       }
-      
+
       // If regions are selected, filter states by those regions
       if (regionIds && regionIds.length > 0) {
         requestParams.regions = regionIds;
       }
-      
+
       const response = await this.stateService.getAllStates(requestParams);
       this.states = response.docs;
       this.statesLoaded = true;
@@ -295,26 +311,29 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     }
   }
 
-  async fetchCities(stateNameOrId?: string, regionIds?: string[]): Promise<void> {
+  async fetchCities(
+    stateNameOrId?: string,
+    regionIds?: string[]
+  ): Promise<void> {
     this.citiesLoading = true;
     this.citiesLoaded = false;
     try {
       const requestParams: any = {
         page: 1,
         limit: 1000,
-        search: ''
+        search: '',
       };
-      
+
       // If state is selected, filter cities by that state
       if (stateNameOrId) {
         requestParams.state = stateNameOrId;
       }
-      
+
       // If regions are selected, filter cities by those regions
       if (regionIds && regionIds.length > 0) {
         requestParams.regions = regionIds;
       }
-      
+
       const response = await this.cityService.getAllCities(requestParams);
       this.cities = response.docs;
       this.citiesLoaded = true;
@@ -334,7 +353,7 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       const response = await this.regionService.getRegions({
         page: 1,
         limit: 1000,
-        search: ''
+        search: '',
       });
       this.regions = response.docs;
       this.regionsLoaded = true;
@@ -347,20 +366,35 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     }
   }
 
+  async fetchDmcLists(): Promise<void> {
+    this.dmcLoading = true;
+    try {
+      const response = await this.dmcListService.getAllDmcLists();
+      this.specializations = Array.isArray(response) ? response : [];
+
+      this.cdr.detectChanges();
+    } catch (error) {
+      console.error('Error fetching DMC lists:', error);
+    } finally {
+      this.dmcLoading = false;
+    }
+  }
+
   async fetchRegistrations(): Promise<void> {
     this.registrationsLoading = true;
     try {
       const requestData = {
         page: this.payload.page,
         limit: this.payload.limit,
-        search: this.payload.search
+        search: this.payload.search,
       };
-      const response: RegistrationResponse = await this.registerService.getAllMembers(requestData);
-      
+      const response: RegistrationResponse =
+        await this.registerService.getAllMembers(requestData);
+
       if (response && response.success && response.data) {
         this.registrations = response.data;
         this.cdr.detectChanges();
-        
+
         // Reinitialize tooltips after data loads
         this.initializeTooltips();
       }
@@ -377,7 +411,7 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
         hasPrevPage: false,
         pagingCounter: 1,
         prevPage: null,
-        nextPage: null
+        nextPage: null,
       };
     } finally {
       this.registrationsLoading = false;
@@ -406,7 +440,7 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   async acceptUser(registration: Registration): Promise<void> {
     try {
       this.acceptingUser = registration._id;
-      
+
       const result = await swalHelper.confirmation(
         'Accept User',
         `Are you sure you want to accept ${registration.name} as a member?`,
@@ -414,13 +448,18 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       );
 
       if (result.isConfirmed) {
-        const response = await this.registerService.addToMember({ id: registration._id });
-        
+        const response = await this.registerService.addToMember({
+          id: registration._id,
+        });
+
         if (response && response.success) {
           swalHelper.showToast('User accepted successfully', 'success');
           this.fetchRegistrations();
         } else {
-          swalHelper.showToast(response.message || 'Failed to accept user', 'error');
+          swalHelper.showToast(
+            response.message || 'Failed to accept user',
+            'error'
+          );
         }
       }
     } catch (error) {
@@ -435,14 +474,14 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   onMobileInput(event: any): void {
     const input = event.target;
     let value = input.value.replace(/\D/g, '');
-    
+
     if (value.length > 10) {
       value = value.substring(0, 10);
     }
-    
+
     this.registerForm.mobile_number = value;
     input.value = value;
-    
+
     this.touchedFields.mobile_number = true;
     if (value.length === 10) {
       this.validationErrors.mobile_number = '';
@@ -466,7 +505,8 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       return false;
     }
     if (!/^[a-zA-Z\s]+$/.test(name)) {
-      this.validationErrors.name = 'Full name can only contain letters and spaces';
+      this.validationErrors.name =
+        'Full name can only contain letters and spaces';
       return false;
     }
     this.validationErrors.name = '';
@@ -503,7 +543,8 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       return false;
     }
     if (!/^\d{10}$/.test(mobile)) {
-      this.validationErrors.mobile_number = 'Mobile number must be exactly 10 digits';
+      this.validationErrors.mobile_number =
+        'Mobile number must be exactly 10 digits';
       return false;
     }
     this.validationErrors.mobile_number = '';
@@ -560,7 +601,8 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       return false;
     }
     if (businessName.length < 2) {
-      this.validationErrors.business_name = 'Business name must be at least 2 characters';
+      this.validationErrors.business_name =
+        'Business name must be at least 2 characters';
       return false;
     }
     this.validationErrors.business_name = '';
@@ -576,8 +618,9 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       this.validationErrors.business_type = 'Business type is required';
       return false;
     }
-    if (!['B2B', 'B2C'].includes(this.registerForm.business_type)) {
-      this.validationErrors.business_type = 'Business type must be either B2B or B2C';
+    if (!['B2B', 'B2C', 'Both'].includes(this.registerForm.business_type)) {
+      this.validationErrors.business_type =
+        'Business type must be either B2B or B2C';
       return false;
     }
     this.validationErrors.business_type = '';
@@ -602,30 +645,21 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       return true;
     }
 
-    if (!this.registerForm.dmc_specializations || this.registerForm.dmc_specializations.length === 0) {
-      this.validationErrors.dmc_specializations = 'At least one specialization is required';
+    if (
+      !this.registerForm.dmc_specializations ||
+      this.registerForm.dmc_specializations.length === 0
+    ) {
+      this.validationErrors.dmc_specializations =
+        'At least one specialization is required';
       return false;
     }
     this.validationErrors.dmc_specializations = '';
     return true;
   }
 
-  validateServicesOffered(): boolean {
-    if (!this.touchedFields.services_offered) {
-      return true;
-    }
-
-    if (!this.registerForm.services_offered || this.registerForm.services_offered.length === 0) {
-      this.validationErrors.services_offered = 'At least one service is required';
-      return false;
-    }
-    this.validationErrors.services_offered = '';
-    return true;
-  }
-
   onFieldBlur(fieldName: string): void {
     this.touchedFields[fieldName] = true;
-    
+
     switch (fieldName) {
       case 'name':
         this.validateName();
@@ -656,9 +690,6 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
         break;
       case 'dmc_specializations':
         this.validateSpecializations();
-        break;
-      case 'services_offered':
-        this.validateServicesOffered();
         break;
     }
   }
@@ -694,9 +725,10 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   onCountryChange(): void {
     // When country changes, fetch states based on selected country and regions
     if (this.registerForm.country) {
-      const regionIds = this.registerForm.regions && this.registerForm.regions.length > 0 
-        ? this.registerForm.regions 
-        : undefined;
+      const regionIds =
+        this.registerForm.regions && this.registerForm.regions.length > 0
+          ? this.registerForm.regions
+          : undefined;
       this.fetchStates(this.registerForm.country, regionIds);
       // Clear dependent fields
       this.registerForm.state = '';
@@ -718,9 +750,10 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   onStateChange(): void {
     // When state changes, fetch cities based on selected state and regions
     if (this.registerForm.state) {
-      const regionIds = this.registerForm.regions && this.registerForm.regions.length > 0 
-        ? this.registerForm.regions 
-        : undefined;
+      const regionIds =
+        this.registerForm.regions && this.registerForm.regions.length > 0
+          ? this.registerForm.regions
+          : undefined;
       this.fetchCities(this.registerForm.state, regionIds);
       // Clear dependent field
       this.registerForm.city = '';
@@ -736,14 +769,14 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   async registerUser(): Promise<void> {
     try {
       this.markAllRequiredFieldsAsTouched();
-      
+
       if (!this.validateFormForSubmission()) {
         swalHelper.showToast('Please fix all validation errors', 'warning');
         return;
       }
 
       this.loading = true;
-      
+
       // Create request body object
       const requestBody: any = {
         name: this.registerForm.name,
@@ -755,26 +788,30 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
         business_name: this.registerForm.business_name,
         regions: this.registerForm.regions,
         dmc_specializations: this.registerForm.dmc_specializations,
-        services_offered: this.registerForm.services_offered,
-        business: [{
-          business_name: this.registerForm.business_name,
-          business_type: this.registerForm.business_type,
-          primary_business: true
-        }]
+        business: [
+          {
+            business_name: this.registerForm.business_name,
+            business_type: this.registerForm.business_type,
+            primary_business: true,
+          },
+        ],
       };
 
       console.log('Request body:', requestBody);
 
       const response = await this.registerService.newRegisterUser(requestBody);
       console.log('Register response:', response);
-      
+
       if (response && response.success) {
         swalHelper.showToast('User registered successfully', 'success');
         this.closeModal();
         this.resetForm();
         this.fetchRegistrations();
       } else {
-        swalHelper.showToast(response.message || 'Failed to register user', 'error');
+        swalHelper.showToast(
+          response.message || 'Failed to register user',
+          'error'
+        );
       }
     } catch (error) {
       console.error('Error registering user:', error);
@@ -795,7 +832,6 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     this.touchedFields.business_type = true;
     this.touchedFields.regions = true;
     this.touchedFields.dmc_specializations = true;
-    this.touchedFields.services_offered = true;
   }
 
   validateFormForSubmission(): boolean {
@@ -804,7 +840,7 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     const mobile = this.registerForm.mobile_number;
     const businessName = this.registerForm.business_name.trim();
     const businessType = this.registerForm.business_type;
-    
+
     let isValid = true;
 
     if (!name) {
@@ -814,7 +850,8 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       this.validationErrors.name = 'Full name must be at least 2 characters';
       isValid = false;
     } else if (!/^[a-zA-Z\s]+$/.test(name)) {
-      this.validationErrors.name = 'Full name can only contain letters and spaces';
+      this.validationErrors.name =
+        'Full name can only contain letters and spaces';
       isValid = false;
     } else {
       this.validationErrors.name = '';
@@ -834,7 +871,8 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       this.validationErrors.mobile_number = 'Mobile number is required';
       isValid = false;
     } else if (!/^\d{10}$/.test(mobile)) {
-      this.validationErrors.mobile_number = 'Mobile number must be exactly 10 digits';
+      this.validationErrors.mobile_number =
+        'Mobile number must be exactly 10 digits';
       isValid = false;
     } else {
       this.validationErrors.mobile_number = '';
@@ -865,7 +903,8 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       this.validationErrors.business_name = 'Business name is required';
       isValid = false;
     } else if (businessName.length < 2) {
-      this.validationErrors.business_name = 'Business name must be at least 2 characters';
+      this.validationErrors.business_name =
+        'Business name must be at least 2 characters';
       isValid = false;
     } else {
       this.validationErrors.business_name = '';
@@ -874,8 +913,9 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     if (!businessType) {
       this.validationErrors.business_type = 'Business type is required';
       isValid = false;
-    } else if (!['B2B', 'B2C'].includes(businessType)) {
-      this.validationErrors.business_type = 'Business type must be either B2B or B2C';
+    } else if (!['B2B', 'B2C', 'Both'].includes(businessType)) {
+      this.validationErrors.business_type =
+        'Business type must be either B2B or B2C';
       isValid = false;
     } else {
       this.validationErrors.business_type = '';
@@ -888,20 +928,16 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       this.validationErrors.regions = '';
     }
 
-    if (!this.registerForm.dmc_specializations || this.registerForm.dmc_specializations.length === 0) {
-      this.validationErrors.dmc_specializations = 'At least one specialization is required';
+    if (
+      !this.registerForm.dmc_specializations ||
+      this.registerForm.dmc_specializations.length === 0
+    ) {
+      this.validationErrors.dmc_specializations =
+        'At least one specialization is required';
       isValid = false;
     } else {
       this.validationErrors.dmc_specializations = '';
     }
-
-    if (!this.registerForm.services_offered || this.registerForm.services_offered.length === 0) {
-      this.validationErrors.services_offered = 'At least one service is required';
-      isValid = false;
-    } else {
-      this.validationErrors.services_offered = '';
-    }
-
     return isValid;
   }
 
@@ -912,17 +948,26 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     const businessName = this.registerForm.business_name.trim();
     const businessType = this.registerForm.business_type;
 
-    return name && name.length >= 2 && /^[a-zA-Z\s]+$/.test(name) &&
-           email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
-           mobile && /^\d{10}$/.test(mobile) &&
-           this.registerForm.country &&
-           this.registerForm.state &&
-           this.registerForm.city &&
-           businessName && businessName.length >= 2 &&
-           businessType && ['B2B', 'B2C'].includes(businessType) &&
-           this.registerForm.regions && this.registerForm.regions.length > 0 &&
-           this.registerForm.dmc_specializations && this.registerForm.dmc_specializations.length > 0 &&
-           this.registerForm.services_offered && this.registerForm.services_offered.length > 0;
+    return (
+      name &&
+      name.length >= 2 &&
+      /^[a-zA-Z\s]+$/.test(name) &&
+      email &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
+      mobile &&
+      /^\d{10}$/.test(mobile) &&
+      this.registerForm.country &&
+      this.registerForm.state &&
+      this.registerForm.city &&
+      businessName &&
+      businessName.length >= 2 &&
+      businessType &&
+      ['B2B', 'B2C', 'Both'].includes(businessType) &&
+      this.registerForm.regions &&
+      this.registerForm.regions.length > 0 &&
+      this.registerForm.dmc_specializations &&
+      this.registerForm.dmc_specializations.length > 0
+    );
   }
 
   resetForm(): void {
@@ -937,7 +982,6 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       business_type: '',
       regions: [],
       dmc_specializations: [],
-      services_offered: []
     };
 
     this.validationErrors = {
@@ -951,7 +995,6 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       business_type: '',
       regions: '',
       dmc_specializations: '',
-      services_offered: ''
     };
 
     this.touchedFields = {
@@ -965,7 +1008,6 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
       business_type: false,
       regions: false,
       dmc_specializations: false,
-      services_offered: false
     };
 
     // Clear dependent dropdowns
@@ -1013,8 +1055,10 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
 
   initializeTooltips(): void {
     setTimeout(() => {
-      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-      tooltipTriggerList.forEach(tooltipTriggerEl => {
+      const tooltipTriggerList = document.querySelectorAll(
+        '[data-bs-toggle="tooltip"]'
+      );
+      tooltipTriggerList.forEach((tooltipTriggerEl) => {
         new bootstrap.Tooltip(tooltipTriggerEl);
       });
     }, 500);
@@ -1022,11 +1066,14 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
 
   getRegionsTooltip(regions: RegionObject[]): string {
     if (!regions || regions.length <= 1) return '';
-    
+
     const additionalRegions = regions.slice(1);
-    return additionalRegions.map(region => 
-      `${region.name} - Countries: ${region.countries?.join(', ') || 'N/A'}`
-    ).join('\n');
+    return additionalRegions
+      .map(
+        (region) =>
+          `${region.name} - Countries: ${region.countries?.join(', ') || 'N/A'}`
+      )
+      .join('\n');
   }
 
   openUserDetailsModal(registration: Registration): void {
@@ -1044,7 +1091,9 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   }
 
   triggerFileInput(): void {
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const fileInput = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
     if (fileInput) {
       fileInput.click();
     }
@@ -1060,13 +1109,19 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     const allowedExtensions = ['xls', 'xlsx', 'xlsm', 'csv'];
 
     if (!allowedExtensions.includes(fileExtension || '')) {
-      swalHelper.showToast('Invalid file type. Please upload an Excel (.xls, .xlsx, .xlsm) or CSV (.csv) file.', 'error');
+      swalHelper.showToast(
+        'Invalid file type. Please upload an Excel (.xls, .xlsx, .xlsm) or CSV (.csv) file.',
+        'error'
+      );
       event.target.value = '';
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      swalHelper.showToast('File size exceeds 10MB. Please upload a smaller file.', 'error');
+      swalHelper.showToast(
+        'File size exceeds 10MB. Please upload a smaller file.',
+        'error'
+      );
       event.target.value = '';
       return;
     }
@@ -1087,21 +1142,27 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
         this.excelColumns = response.data.excelColumns || [];
         this.availableFields = response.data.availableFields || [];
         this.filePath = response.data.filePath;
-        
+
         // Initialize column mapping - try to auto-map by matching column names
         this.initializeColumnMapping();
-        
+
         // Open preview modal
         if (this.previewModal) {
           this.previewModal.show();
         }
       } else {
-        swalHelper.showToast(response.message || 'Failed to preview Excel file', 'error');
+        swalHelper.showToast(
+          response.message || 'Failed to preview Excel file',
+          'error'
+        );
         event.target.value = '';
       }
     } catch (error: any) {
       console.error('Error previewing Excel:', error);
-      swalHelper.showToast('Error previewing Excel file: ' + (error.message || 'Unknown error'), 'error');
+      swalHelper.showToast(
+        'Error previewing Excel file: ' + (error.message || 'Unknown error'),
+        'error'
+      );
       event.target.value = '';
     } finally {
       this.previewLoading = false;
@@ -1111,29 +1172,38 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
 
   initializeColumnMapping(): void {
     this.columnMapping = {};
-    
+
     // Auto-map columns by matching names (case-insensitive)
     const fieldMap: { [key: string]: string[] } = {
-      'name': ['name', 'first_name', 'full_name', 'user_name'],
-      'email': ['email', 'email_id', 'e_mail'],
-      'mobile_number': ['mobile_number', 'mobile', 'phone', 'phone_number', 'contact'],
-      'business_name': ['business_name', 'company_name', 'company', 'business'],
-      'city': ['city'],
-      'state': ['state'],
-      'country': ['country'],
-      'address': ['address', 'registered_office_address'],
-      'business_type': ['business_type', 'registered_as'],
-      'regions': ['regions', 'region'],
-      'dmc_specializations': ['dmc_specializations', 'dmc_specialization'],
-      'services_offered': ['services_offered', 'services', 'b2b_registered_for'],
-      'isActive': ['isActive', 'is_active', 'active'],
-      'isMember': ['isMember', 'is_member', 'member']
+      name: ['name', 'first_name', 'full_name', 'user_name'],
+      email: ['email', 'email_id', 'e_mail'],
+      mobile_number: [
+        'mobile_number',
+        'mobile',
+        'phone',
+        'phone_number',
+        'contact',
+      ],
+      business_name: ['business_name', 'company_name', 'company', 'business'],
+      city: ['city'],
+      state: ['state'],
+      country: ['country'],
+      address: ['address', 'registered_office_address'],
+      business_type: ['business_type', 'registered_as'],
+      regions: ['regions', 'region'],
+      dmc_specializations: ['dmc_specializations', 'dmc_specialization'],
+      isActive: ['isActive', 'is_active', 'active'],
+      isMember: ['isMember', 'is_member', 'member'],
     };
 
     this.availableFields.forEach((field: any) => {
       const possibleNames = fieldMap[field.key] || [field.key.toLowerCase()];
-      const matchedColumn = this.excelColumns.find(col => 
-        possibleNames.some(name => col.toLowerCase().replace(/[_\s]/g, '') === name.toLowerCase().replace(/[_\s]/g, ''))
+      const matchedColumn = this.excelColumns.find((col) =>
+        possibleNames.some(
+          (name) =>
+            col.toLowerCase().replace(/[_\s]/g, '') ===
+            name.toLowerCase().replace(/[_\s]/g, '')
+        )
       );
       if (matchedColumn) {
         this.columnMapping[field.key] = matchedColumn;
@@ -1144,11 +1214,15 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
   async importWithMapping(): Promise<void> {
     // Validate required fields
     const requiredFields = this.availableFields.filter((f: any) => f.required);
-    const missingFields = requiredFields.filter((f: any) => !this.columnMapping[f.key]);
-    
+    const missingFields = requiredFields.filter(
+      (f: any) => !this.columnMapping[f.key]
+    );
+
     if (missingFields.length > 0) {
       swalHelper.showToast(
-        `Please map required fields: ${missingFields.map((f: any) => f.label).join(', ')}`,
+        `Please map required fields: ${missingFields
+          .map((f: any) => f.label)
+          .join(', ')}`,
         'error'
       );
       return;
@@ -1165,22 +1239,22 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     }
 
     this.importingExcel = true;
-    
+
     try {
       const response = await this.authService.importUserRegistrationsFromExcel(
         this.columnMapping,
         this.filePath
       );
-      
+
       if (response.success) {
         const data = response.data;
-        
+
         // Show success toast
         swalHelper.showToast(
           `Successfully imported ${data.created} users out of ${data.total} total rows.`,
           'success'
         );
-        
+
         // Show detailed breakdown if rows were skipped
         if (data.skipped > 0) {
           let detailsHtml = `
@@ -1192,18 +1266,26 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
                 <p style="margin: 5px 0; color: #ffc107;"><strong>⚠ Skipped:</strong> ${data.skipped}</p>
               </div>
           `;
-          
+
           if (data.skippedDetails) {
             detailsHtml += `
               <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                 <h5 style="margin-bottom: 10px; color: #856404;">Skipped Details:</h5>
-                <p style="margin: 5px 0;">• <strong>Duplicates:</strong> ${data.skippedDetails.duplicates} rows (already exist in database)</p>
-                <p style="margin: 5px 0;">• <strong>Missing Fields:</strong> ${data.skippedDetails.missingFields} rows (missing name, email, or mobile)</p>
-                ${data.skippedDetails.other > 0 ? `<p style="margin: 5px 0;">• <strong>Other Errors:</strong> ${data.skippedDetails.other} rows</p>` : ''}
+                <p style="margin: 5px 0;">• <strong>Duplicates:</strong> ${
+                  data.skippedDetails.duplicates
+                } rows (already exist in database)</p>
+                <p style="margin: 5px 0;">• <strong>Missing Fields:</strong> ${
+                  data.skippedDetails.missingFields
+                } rows (missing name, email, or mobile)</p>
+                ${
+                  data.skippedDetails.other > 0
+                    ? `<p style="margin: 5px 0;">• <strong>Other Errors:</strong> ${data.skippedDetails.other} rows</p>`
+                    : ''
+                }
               </div>
             `;
           }
-          
+
           // Add sample skipped rows
           if (data.skippedRows && data.skippedRows.length > 0) {
             const sampleRows = data.skippedRows.slice(0, 10);
@@ -1220,17 +1302,21 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
                   </thead>
                   <tbody>
             `;
-            
+
             sampleRows.forEach((skipped: any) => {
               let details = '';
               if (skipped.reason === 'Duplicate user') {
-                details = `Email: ${skipped.email || 'N/A'}, Mobile: ${skipped.mobile_number || 'N/A'}`;
+                details = `Email: ${skipped.email || 'N/A'}, Mobile: ${
+                  skipped.mobile_number || 'N/A'
+                }`;
               } else if (skipped.reason === 'Missing required fields') {
-                details = `Missing: ${skipped.missingFields?.join(', ') || 'N/A'}`;
+                details = `Missing: ${
+                  skipped.missingFields?.join(', ') || 'N/A'
+                }`;
               } else {
                 details = skipped.error || 'N/A';
               }
-              
+
               detailsHtml += `
                 <tr>
                   <td style="padding: 8px; border: 1px solid #dee2e6;">${skipped.row}</td>
@@ -1239,17 +1325,23 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
                 </tr>
               `;
             });
-            
+
             detailsHtml += `
                   </tbody>
                 </table>
-                ${data.skippedRows.length > 10 ? `<p style="margin-top: 10px; font-size: 11px; color: #6c757d;">... and ${data.skippedRows.length - 10} more. Check console for full details.</p>` : ''}
+                ${
+                  data.skippedRows.length > 10
+                    ? `<p style="margin-top: 10px; font-size: 11px; color: #6c757d;">... and ${
+                        data.skippedRows.length - 10
+                      } more. Check console for full details.</p>`
+                    : ''
+                }
               </div>
             `;
           }
-          
+
           detailsHtml += `</div>`;
-          
+
           // Show detailed modal
           Swal.fire({
             icon: 'info',
@@ -1257,10 +1349,10 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
             html: detailsHtml,
             width: '700px',
             confirmButtonText: 'OK',
-            confirmButtonColor: '#3085d6'
+            confirmButtonColor: '#3085d6',
           });
         }
-        
+
         // Log full details to console for debugging
         if (data.skippedRows && data.skippedRows.length > 0) {
           console.group('📊 Import Summary - Skipped Rows');
@@ -1273,22 +1365,28 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
           console.log('All Skipped Rows:', data.skippedRows);
           console.groupEnd();
         }
-        
+
         // Log errors if any
         if (data.errors && data.errors.length > 0) {
           console.group('❌ Import Errors');
           console.error('Errors:', data.errors);
           console.groupEnd();
         }
-        
+
         this.fetchRegistrations();
         this.closePreviewModal();
       } else {
-        swalHelper.showToast(response.message || 'Failed to import users.', 'error');
+        swalHelper.showToast(
+          response.message || 'Failed to import users.',
+          'error'
+        );
       }
     } catch (error: any) {
       console.error('Error importing Excel:', error);
-      swalHelper.showToast('Error importing Excel file: ' + (error.message || 'Unknown error'), 'error');
+      swalHelper.showToast(
+        'Error importing Excel file: ' + (error.message || 'Unknown error'),
+        'error'
+      );
     } finally {
       this.importingExcel = false;
       this.cdr.detectChanges();
@@ -1302,18 +1400,26 @@ export class NewUserRegistrationComponent implements OnInit, AfterViewInit {
     this.excelPreviewData = null;
     this.columnMapping = {};
     this.filePath = '';
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const fileInput = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
     if (fileInput) {
       fileInput.value = '';
     }
   }
 
   getSampleValue(columnName: string): string {
-    if (!this.excelPreviewData || !this.excelPreviewData.previewData || this.excelPreviewData.previewData.length === 0) {
+    if (
+      !this.excelPreviewData ||
+      !this.excelPreviewData.previewData ||
+      this.excelPreviewData.previewData.length === 0
+    ) {
       return '(empty)';
     }
     const value = this.excelPreviewData.previewData[0][columnName];
-    return value !== undefined && value !== null && value !== '' ? String(value) : '(empty)';
+    return value !== undefined && value !== null && value !== ''
+      ? String(value)
+      : '(empty)';
   }
 
   isColumnMapped(columnName: string): boolean {

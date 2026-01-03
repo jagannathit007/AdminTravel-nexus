@@ -1,7 +1,22 @@
-import { Component, OnInit, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  AfterViewInit,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AuthService, City, CityService, Country, CountryService, State, StateService, User } from '../../../services/auth.service';
+import {
+  AuthService,
+  City,
+  CityService,
+  Country,
+  CountryService,
+  DmcListService,
+  State,
+  StateService,
+  User,
+} from '../../../services/auth.service';
 import { ReferralService1 } from '../../../services/auth.service';
 import { ExportService } from '../../../services/export.service';
 import { ChapterService } from '../../../services/auth.service';
@@ -44,22 +59,28 @@ interface ExtendedUser {
   status: boolean;
   createdAt: string;
   keywords: string;
- 
+
   business_name: string;
   business_type: string; // Added business_type
   isMember: boolean;
   regions: RegionObject[];
   dmc_specializations: string[];
-  services_offered: string[];
 }
 
 @Component({
   selector: 'app-users',
   standalone: true,
   imports: [CommonModule, FormsModule, NgxPaginationModule, NgSelectModule],
-  providers: [ExportService, StateService, CountryService, CityService, RegionService],
+  providers: [
+    ExportService,
+    StateService,
+    CountryService,
+    CityService,
+    RegionService,
+    DmcListService,
+  ],
   templateUrl: './users.component.html',
-  styleUrls: ['./users.component.css']
+  styleUrls: ['./users.component.css'],
 })
 export class UsersComponent implements OnInit, AfterViewInit {
   users: any = { docs: [], totalDocs: 0, limit: 10, page: 1, totalPages: 0 };
@@ -81,35 +102,29 @@ export class UsersComponent implements OnInit, AfterViewInit {
   referralsGivenTotal: number = 0;
   referralsReceivedTotal: number = 0;
   referralLoading: boolean = false;
+  dmcLoading: boolean = false;
   regionsLoading: boolean = false;
   pdfLoading: boolean = false;
   Math = Math;
 
   // Predefined arrays for specializations, services, and business types
-  specializations: string[] = [
-    'MICE', 'Adventure', 'Luxury', 'Cultural', 'Corporate',
-    'Leisure', 'Educational', 'Medical', 'Religious', 'Eco-Tourism'
-  ];
-  servicesOffered: string[] = [
-    'Hotel Booking', 'Transportation', 'Guided Tours', 'Event Management',
-    'Airport Transfers', 'Visa Assistance', 'Travel Insurance', 'Custom Packages'
-  ];
-  businessTypes: string[] = ['B2B', 'B2C']; // Added business types
+  specializations: any[] = [];
+  businessTypes: string[] = ['B2B', 'B2C', 'Both']; // Added business types
 
   notificationForm = {
     userId: '',
     title: '',
     description: '',
-    message: ''
+    message: '',
   };
   notificationError = {
     title: '',
-    description: ''
+    description: '',
   };
   notificationLoading: boolean = false;
 
   paginationConfig = {
-    id: 'users-pagination'
+    id: 'users-pagination',
   };
   editUserModal: any;
   editForm = {
@@ -122,8 +137,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
     business_name: '',
     business_type: '', // Added business_type
     regions: [] as string[],
-    dmc_specializations: [] as string[],
-    services_offered: [] as string[]
+    dmc_specializations: [] as any[],
   };
   editError = {
     name: '',
@@ -136,27 +150,26 @@ export class UsersComponent implements OnInit, AfterViewInit {
     business_type: '', // Added business_type
     regions: '',
     dmc_specializations: '',
-    services_offered: ''
   };
   editLoading: boolean = false;
 
   referralPaginationConfig = {
     givenId: 'referrals-given-pagination',
-    receivedId: 'referrals-received-pagination'
+    receivedId: 'referrals-received-pagination',
   };
 
   payload = {
     search: '',
     page: 1,
     limit: 10,
-    chapter: ''
+    chapter: '',
   };
 
   referralPayload = {
     page: 1,
     givenPage: 1,
     receivedPage: 1,
-    limit: 5
+    limit: 5,
   };
   countries: Country[] = [];
   states: State[] = [];
@@ -177,6 +190,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
   constructor(
     private authService: AuthService,
     private referralService: ReferralService1,
+    private dmcListService: DmcListService,
     private chapterService: ChapterService,
     private countryService: CountryService,
     private stateService: StateService,
@@ -193,6 +207,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.fetchChapters();
     this.fetchUsers();
+    this.fetchDmcLists();
     // Only fetch regions initially - countries, states, cities will be fetched based on selections
     this.fetchRegions();
   }
@@ -211,7 +226,8 @@ export class UsersComponent implements OnInit, AfterViewInit {
       } else {
         console.warn('Edit user modal element not found in the DOM');
       }
-      const notificationModalElement = document.getElementById('notificationModal');
+      const notificationModalElement =
+        document.getElementById('notificationModal');
       if (notificationModalElement) {
         this.notificationModal = new bootstrap.Modal(notificationModalElement);
       } else {
@@ -225,8 +241,10 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   initializeTooltips(): void {
     setTimeout(() => {
-      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-      tooltipTriggerList.forEach(tooltipTriggerEl => {
+      const tooltipTriggerList = document.querySelectorAll(
+        '[data-bs-toggle="tooltip"]'
+      );
+      tooltipTriggerList.forEach((tooltipTriggerEl) => {
         new bootstrap.Tooltip(tooltipTriggerEl);
       });
     }, 500);
@@ -236,9 +254,12 @@ export class UsersComponent implements OnInit, AfterViewInit {
     if (!regions || regions.length <= 1) return '';
 
     const additionalRegions = regions.slice(1);
-    return additionalRegions.map(region =>
-      `${region.name} - Countries: ${region.countries?.join(', ') || 'N/A'}`
-    ).join('\n');
+    return additionalRegions
+      .map(
+        (region) =>
+          `${region.name} - Countries: ${region.countries?.join(', ') || 'N/A'}`
+      )
+      .join('\n');
   }
 
   getSpecializationsDisplay(specializations: string[]): string {
@@ -253,7 +274,11 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
   getRegionsDisplay(regions: RegionObject[]): string {
     if (!regions || regions.length === 0) return 'N/A';
-    return regions.map(region => `${region.name} (${region.countries?.join(', ') || 'N/A'})`).join(', ');
+    return regions
+      .map(
+        (region) => `${region.name} (${region.countries?.join(', ') || 'N/A'})`
+      )
+      .join(', ');
   }
 
   async fetchRegions(): Promise<void> {
@@ -262,7 +287,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
       const response = await this.regionService.getRegions({
         page: 1,
         limit: 1000,
-        search: ''
+        search: '',
       });
       this.regions = response.docs;
     } catch (error) {
@@ -292,7 +317,7 @@ export class UsersComponent implements OnInit, AfterViewInit {
         page: this.payload.page,
         limit: this.payload.limit,
         search: this.payload.search,
-        chapter: this.payload.chapter
+        chapter: this.payload.chapter,
       };
       const response = await this.authService.getUsers(requestData);
       if (response) {
@@ -305,7 +330,13 @@ export class UsersComponent implements OnInit, AfterViewInit {
     } catch (error) {
       console.error('Error fetching users:', error);
       swalHelper.showToast('Failed to fetch users', 'error');
-      this.users = { docs: [], totalDocs: 0, limit: this.payload.limit, page: this.payload.page, totalPages: 0 };
+      this.users = {
+        docs: [],
+        totalDocs: 0,
+        limit: this.payload.limit,
+        page: this.payload.page,
+        totalPages: 0,
+      };
     } finally {
       this.loading = false;
       this.cdr.detectChanges();
@@ -372,18 +403,30 @@ export class UsersComponent implements OnInit, AfterViewInit {
     try {
       let response;
       if (this.referralTab === 'given') {
-        response = await this.referralService.getReferralsGiven(this.selectedUser._id, {
-          page: this.referralPayload.givenPage,
-          limit: this.referralPayload.limit
-        });
-        this.referralsGiven = (response?.data && Array.isArray(response.data.docs)) ? response.data.docs : [];
+        response = await this.referralService.getReferralsGiven(
+          this.selectedUser._id,
+          {
+            page: this.referralPayload.givenPage,
+            limit: this.referralPayload.limit,
+          }
+        );
+        this.referralsGiven =
+          response?.data && Array.isArray(response.data.docs)
+            ? response.data.docs
+            : [];
         this.referralsGivenTotal = response?.data?.totalDocs || 0;
       } else {
-        response = await this.referralService.getReferralsReceived(this.selectedUser._id, {
-          page: this.referralPayload.receivedPage,
-          limit: this.referralPayload.limit
-        });
-        this.referralsReceived = (response?.data && Array.isArray(response.data.docs)) ? response.data.docs : [];
+        response = await this.referralService.getReferralsReceived(
+          this.selectedUser._id,
+          {
+            page: this.referralPayload.receivedPage,
+            limit: this.referralPayload.limit,
+          }
+        );
+        this.referralsReceived =
+          response?.data && Array.isArray(response.data.docs)
+            ? response.data.docs
+            : [];
         this.referralsReceivedTotal = response?.data?.totalDocs || 0;
       }
       this.cdr.detectChanges();
@@ -448,11 +491,11 @@ export class UsersComponent implements OnInit, AfterViewInit {
       userId: user._id,
       title: '',
       description: '',
-      message: ''
+      message: '',
     };
     this.notificationError = {
       title: '',
-      description: ''
+      description: '',
     };
     if (this.notificationModal) {
       this.notificationModal.show();
@@ -503,12 +546,17 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
     this.notificationLoading = true;
     try {
-      const response = await this.authService.sendNotification(this.notificationForm);
+      const response = await this.authService.sendNotification(
+        this.notificationForm
+      );
       if (response.success) {
         swalHelper.showToast('Notification sent successfully', 'success');
         this.closeNotificationModal();
       } else {
-        swalHelper.showToast(response.message || 'Failed to send notification', 'error');
+        swalHelper.showToast(
+          response.message || 'Failed to send notification',
+          'error'
+        );
       }
     } catch (error) {
       console.error('Error sending notification:', error);
@@ -530,9 +578,8 @@ export class UsersComponent implements OnInit, AfterViewInit {
       country: user.country || '',
       business_name: user.business_name || '',
       business_type: (user as any).business?.[0]?.business_type || '', // Fixed: business_type is nested in business array
-      regions: user.regions?.map(region => region._id) || [],
+      regions: user.regions?.map((region) => region._id) || [],
       dmc_specializations: user.dmc_specializations || [],
-      services_offered: user.services_offered || []
     };
     this.editError = {
       name: '',
@@ -545,22 +592,22 @@ export class UsersComponent implements OnInit, AfterViewInit {
       business_type: '',
       regions: '',
       dmc_specializations: '',
-      services_offered: ''
     };
 
     // Fetch data based on existing user data
-    const regionIds = this.editForm.regions && this.editForm.regions.length > 0 
-      ? this.editForm.regions 
-      : undefined;
-    
+    const regionIds =
+      this.editForm.regions && this.editForm.regions.length > 0
+        ? this.editForm.regions
+        : undefined;
+
     // Fetch countries based on regions
     await this.fetchCountries(regionIds);
-    
+
     // If country exists, fetch states
     if (this.editForm.country) {
       await this.fetchStates(this.editForm.country, regionIds);
     }
-    
+
     // If state exists, fetch cities
     if (this.editForm.state) {
       await this.fetchCities(this.editForm.state, regionIds);
@@ -619,9 +666,10 @@ export class UsersComponent implements OnInit, AfterViewInit {
   onEditCountryChange(): void {
     // When country changes, fetch states based on selected country and regions
     if (this.editForm.country) {
-      const regionIds = this.editForm.regions && this.editForm.regions.length > 0 
-        ? this.editForm.regions 
-        : undefined;
+      const regionIds =
+        this.editForm.regions && this.editForm.regions.length > 0
+          ? this.editForm.regions
+          : undefined;
       this.fetchStates(this.editForm.country, regionIds);
       // Clear dependent fields
       this.editForm.state = '';
@@ -643,9 +691,10 @@ export class UsersComponent implements OnInit, AfterViewInit {
   onEditStateChange(): void {
     // When state changes, fetch cities based on selected state and regions
     if (this.editForm.state) {
-      const regionIds = this.editForm.regions && this.editForm.regions.length > 0 
-        ? this.editForm.regions 
-        : undefined;
+      const regionIds =
+        this.editForm.regions && this.editForm.regions.length > 0
+          ? this.editForm.regions
+          : undefined;
       this.fetchCities(this.editForm.state, regionIds);
       // Clear dependent field
       this.editForm.city = '';
@@ -671,7 +720,6 @@ export class UsersComponent implements OnInit, AfterViewInit {
       business_type: '',
       regions: '',
       dmc_specializations: '',
-      services_offered: ''
     };
 
     if (!this.editForm.name.trim()) {
@@ -711,8 +759,9 @@ export class UsersComponent implements OnInit, AfterViewInit {
     if (!this.editForm.business_type) {
       this.editError.business_type = 'Business type is required';
       isValid = false;
-    } else if (!['B2B', 'B2C'].includes(this.editForm.business_type)) {
-      this.editError.business_type = 'Business type must be either B2B or B2C';
+    } else if (!['B2B', 'B2C', 'Both'].includes(this.editForm.business_type)) {
+      this.editError.business_type =
+        'Business type must be either B2B , Both or B2C';
       isValid = false;
     }
 
@@ -726,14 +775,14 @@ export class UsersComponent implements OnInit, AfterViewInit {
       const requestParams: any = {
         page: 1,
         limit: 1000,
-        search: ''
+        search: '',
       };
-      
+
       // If regions are selected, filter countries by those regions
       if (regionIds && regionIds.length > 0) {
         requestParams.regions = regionIds;
       }
-      
+
       const response = await this.countryService.getAllCountries(requestParams);
       this.countries = response.docs;
       this.countriesLoaded = true;
@@ -746,26 +795,29 @@ export class UsersComponent implements OnInit, AfterViewInit {
     }
   }
 
-  async fetchStates(countryNameOrId?: string, regionIds?: string[]): Promise<void> {
+  async fetchStates(
+    countryNameOrId?: string,
+    regionIds?: string[]
+  ): Promise<void> {
     this.statesLoading = true;
     this.statesLoaded = false;
     try {
       const requestParams: any = {
         page: 1,
         limit: 1000,
-        search: ''
+        search: '',
       };
-      
+
       // If country is selected, filter states by that country
       if (countryNameOrId) {
         requestParams.country = countryNameOrId;
       }
-      
+
       // If regions are selected, filter states by those regions
       if (regionIds && regionIds.length > 0) {
         requestParams.regions = regionIds;
       }
-      
+
       const response = await this.stateService.getAllStates(requestParams);
       this.states = response.docs;
       this.statesLoaded = true;
@@ -778,26 +830,43 @@ export class UsersComponent implements OnInit, AfterViewInit {
     }
   }
 
-  async fetchCities(stateNameOrId?: string, regionIds?: string[]): Promise<void> {
+  async fetchDmcLists(): Promise<void> {
+    this.dmcLoading = true;
+    try {
+      const response = await this.dmcListService.getAllDmcLists();
+      this.specializations = Array.isArray(response) ? response : [];
+
+      this.cdr.detectChanges();
+    } catch (error) {
+      console.error('Error fetching DMC lists:', error);
+    } finally {
+      this.dmcLoading = false;
+    }
+  }
+
+  async fetchCities(
+    stateNameOrId?: string,
+    regionIds?: string[]
+  ): Promise<void> {
     this.citiesLoading = true;
     this.citiesLoaded = false;
     try {
       const requestParams: any = {
         page: 1,
         limit: 1000,
-        search: ''
+        search: '',
       };
-      
+
       // If state is selected, filter cities by that state
       if (stateNameOrId) {
         requestParams.state = stateNameOrId;
       }
-      
+
       // If regions are selected, filter cities by those regions
       if (regionIds && regionIds.length > 0) {
         requestParams.regions = regionIds;
       }
-      
+
       const response = await this.cityService.getAllCities(requestParams);
       this.cities = response.docs;
       this.citiesLoaded = true;
@@ -817,20 +886,28 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
     this.editLoading = true;
     try {
-      const response = await this.authService.updateNewUser(this.selectedUser!._id, {
-        ...this.editForm,
-        business: [{
-          business_name: this.editForm.business_name,
-          business_type: this.editForm.business_type,
-          primary_business: true
-        }]
-      });
+      const response = await this.authService.updateNewUser(
+        this.selectedUser!._id,
+        {
+          ...this.editForm,
+          business: [
+            {
+              business_name: this.editForm.business_name,
+              business_type: this.editForm.business_type,
+              primary_business: true,
+            },
+          ],
+        }
+      );
       if (response.success) {
         swalHelper.showToast('User updated successfully', 'success');
         this.closeEditModal();
         this.fetchUsers();
       } else {
-        swalHelper.showToast(response.message || 'Failed to update user', 'error');
+        swalHelper.showToast(
+          response.message || 'Failed to update user',
+          'error'
+        );
       }
     } catch (error) {
       console.error('Error updating user:', error);
@@ -852,20 +929,26 @@ export class UsersComponent implements OnInit, AfterViewInit {
   async toggleUserStatus(user: any): Promise<void> {
     // Store original state in case we need to revert
     const originalState = user.isActive;
-    
+
     // Optimistically update UI
     user.isActive = !user.isActive;
     user._toggling = true; // Flag to show this specific toggle is processing
-    
+
     try {
-      const response = await this.authService.toggleUserStatus({ id: user._id });
+      const response = await this.authService.toggleUserStatus({
+        id: user._id,
+      });
       if (response && response.success) {
         user.isActive = response.data;
-        swalHelper.showToast(`User status changed to ${response.data ? 'Active' : 'Inactive'}`, 'success');
+        swalHelper.showToast(
+          `User status changed to ${response.data ? 'Active' : 'Inactive'}`,
+          'success'
+        );
       } else {
         // Revert on error
         user.isActive = originalState;
-        const errorMessage = response?.message || 'Failed to update user status';
+        const errorMessage =
+          response?.message || 'Failed to update user status';
         console.error('Toggle user status failed:', errorMessage);
         swalHelper.showToast(errorMessage, 'error');
       }
@@ -895,7 +978,10 @@ export class UsersComponent implements OnInit, AfterViewInit {
           swalHelper.showToast('User deleted successfully', 'success');
           this.fetchUsers();
         } else {
-          swalHelper.showToast(response.message || 'Failed to delete user', 'error');
+          swalHelper.showToast(
+            response.message || 'Failed to delete user',
+            'error'
+          );
         }
       }
     } catch (error) {
@@ -921,12 +1007,14 @@ export class UsersComponent implements OnInit, AfterViewInit {
           search: this.payload.search || '',
           page: currentPage,
           limit: pageSize,
-          chapter: this.payload.chapter
+          chapter: this.payload.chapter,
         });
 
         if (response && response.docs && response.docs.length > 0) {
           allUsers = allUsers.concat(response.docs);
-          hasMore = response.docs.length === pageSize && currentPage < response.totalPages;
+          hasMore =
+            response.docs.length === pageSize &&
+            currentPage < response.totalPages;
           currentPage++;
         } else {
           hasMore = false;
@@ -941,20 +1029,21 @@ export class UsersComponent implements OnInit, AfterViewInit {
       // Prepare data for export
       const exportData = allUsers.map((user: any, index: number) => ({
         'Sr. No.': index + 1,
-        'Name': user.name || 'N/A',
-        'Email': user.email || 'N/A',
+        Name: user.name || 'N/A',
+        Email: user.email || 'N/A',
         'Mobile Number': user.mobile_number || 'N/A',
         'Business Name': user.business_name || 'N/A',
         'Business Type': user.business?.[0]?.business_type || 'N/A',
-        'City': user.city || 'N/A',
-        'State': user.state || 'N/A',
-        'Country': user.country || 'N/A',
+        City: user.city || 'N/A',
+        State: user.state || 'N/A',
+        Country: user.country || 'N/A',
         'DMC Specializations': user.dmc_specializations?.join(', ') || 'N/A',
-        'Services Offered': user.services_offered?.join(', ') || 'N/A',
-        'Regions': user.regions?.map((r: any) => r.name).join(', ') || 'N/A',
-        'Status': user.isActive !== false ? 'Active' : 'Inactive',
-        'Member': user.isMember ? 'Yes' : 'No',
-        'Created At': user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'
+        Regions: user.regions?.map((r: any) => r.name).join(', ') || 'N/A',
+        Status: user.isActive !== false ? 'Active' : 'Inactive',
+        Member: user.isMember ? 'Yes' : 'No',
+        'Created At': user.createdAt
+          ? new Date(user.createdAt).toLocaleDateString()
+          : 'N/A',
       }));
 
       // Create workbook and worksheet
@@ -964,31 +1053,36 @@ export class UsersComponent implements OnInit, AfterViewInit {
 
       // Set column widths
       const columnWidths = [
-        { wch: 8 },   // Sr. No.
-        { wch: 25 },  // Name
-        { wch: 30 },  // Email
-        { wch: 15 },  // Mobile Number
-        { wch: 30 },  // Business Name
-        { wch: 12 },  // Business Type
-        { wch: 15 },  // City
-        { wch: 15 },  // State
-        { wch: 15 },  // Country
-        { wch: 30 },  // DMC Specializations
-        { wch: 30 },  // Services Offered
-        { wch: 30 },  // Regions
-        { wch: 10 },  // Status
-        { wch: 10 },  // Member
-        { wch: 15 }   // Created At
+        { wch: 8 }, // Sr. No.
+        { wch: 25 }, // Name
+        { wch: 30 }, // Email
+        { wch: 15 }, // Mobile Number
+        { wch: 30 }, // Business Name
+        { wch: 12 }, // Business Type
+        { wch: 15 }, // City
+        { wch: 15 }, // State
+        { wch: 15 }, // Country
+        { wch: 30 }, // DMC Specializations
+        { wch: 30 }, // Services Offered
+        { wch: 30 }, // Regions
+        { wch: 10 }, // Status
+        { wch: 10 }, // Member
+        { wch: 15 }, // Created At
       ];
       worksheet['!cols'] = columnWidths;
 
       // Generate filename with current date
-      const fileName = `All_Members_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `All_Members_${
+        new Date().toISOString().split('T')[0]
+      }.xlsx`;
 
       // Write file
       XLSX.writeFile(workbook, fileName);
-      
-      swalHelper.showToast(`Excel file exported successfully with ${allUsers.length} records`, 'success');
+
+      swalHelper.showToast(
+        `Excel file exported successfully with ${allUsers.length} records`,
+        'success'
+      );
     } catch (error) {
       console.error('Error exporting to Excel:', error);
       swalHelper.showToast('Failed to export to Excel', 'error');
@@ -1012,12 +1106,14 @@ export class UsersComponent implements OnInit, AfterViewInit {
           search: this.payload.search || '',
           page: currentPage,
           limit: pageSize,
-          chapter: this.payload.chapter
+          chapter: this.payload.chapter,
         });
 
         if (response && response.docs && response.docs.length > 0) {
           allUsers = allUsers.concat(response.docs);
-          hasMore = response.docs.length === pageSize && currentPage < response.totalPages;
+          hasMore =
+            response.docs.length === pageSize &&
+            currentPage < response.totalPages;
           currentPage++;
         } else {
           hasMore = false;
@@ -1032,20 +1128,21 @@ export class UsersComponent implements OnInit, AfterViewInit {
       // Prepare data for export
       const exportData = allUsers.map((user: any, index: number) => ({
         'Sr. No.': index + 1,
-        'Name': user.name || 'N/A',
-        'Email': user.email || 'N/A',
+        Name: user.name || 'N/A',
+        Email: user.email || 'N/A',
         'Mobile Number': user.mobile_number || 'N/A',
         'Business Name': user.business_name || 'N/A',
         'Business Type': user.business?.[0]?.business_type || 'N/A',
-        'City': user.city || 'N/A',
-        'State': user.state || 'N/A',
-        'Country': user.country || 'N/A',
+        City: user.city || 'N/A',
+        State: user.state || 'N/A',
+        Country: user.country || 'N/A',
         'DMC Specializations': user.dmc_specializations?.join(', ') || 'N/A',
-        'Services Offered': user.services_offered?.join(', ') || 'N/A',
-        'Regions': user.regions?.map((r: any) => r.name).join(', ') || 'N/A',
-        'Status': user.isActive !== false ? 'Active' : 'Inactive',
-        'Member': user.isMember ? 'Yes' : 'No',
-        'Created At': user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'
+        Regions: user.regions?.map((r: any) => r.name).join(', ') || 'N/A',
+        Status: user.isActive !== false ? 'Active' : 'Inactive',
+        Member: user.isMember ? 'Yes' : 'No',
+        'Created At': user.createdAt
+          ? new Date(user.createdAt).toLocaleDateString()
+          : 'N/A',
       }));
 
       // Create worksheet
@@ -1058,18 +1155,23 @@ export class UsersComponent implements OnInit, AfterViewInit {
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       // Generate filename with current date
-      const fileName = `All_Members_${new Date().toISOString().split('T')[0]}.csv`;
-      
+      const fileName = `All_Members_${
+        new Date().toISOString().split('T')[0]
+      }.csv`;
+
       link.setAttribute('href', url);
       link.setAttribute('download', fileName);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      swalHelper.showToast(`CSV file exported successfully with ${allUsers.length} records`, 'success');
+
+      swalHelper.showToast(
+        `CSV file exported successfully with ${allUsers.length} records`,
+        'success'
+      );
     } catch (error) {
       console.error('Error exporting to CSV:', error);
       swalHelper.showToast('Failed to export to CSV', 'error');
@@ -1083,5 +1185,4 @@ export class UsersComponent implements OnInit, AfterViewInit {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString();
   }
-
 }

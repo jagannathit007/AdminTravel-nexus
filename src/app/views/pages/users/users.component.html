@@ -300,23 +300,6 @@
                   </ng-template>
                 </div>
               </div>
-
-              <!-- Services Card -->
-              <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-header bg-light py-3">
-                  <h6 class="mb-0 fw-bold"><i class="bi bi-gear-fill me-2"></i> Services Offered</h6>
-                </div>
-                <div class="card-body">
-                  <div *ngIf="selectedUser.services_offered && selectedUser.services_offered.length > 0; else noServices">
-                    <span class="badge bg-success me-2 mb-2" *ngFor="let service of selectedUser.services_offered">
-                      {{ service }}
-                    </span>
-                  </div>
-                  <ng-template #noServices>
-                    <p class="text-muted mb-0">No services specified</p>
-                  </ng-template>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -441,17 +424,10 @@
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label for="editSpecializations" class="form-label">Specializations</label>
-                <ng-select id="editSpecializations" [items]="specializations" placeholder="Select specializations" [(ngModel)]="editForm.dmc_specializations" name="dmc_specializations" [multiple]="true" [class.is-invalid]="editError.dmc_specializations">
+                <ng-select id="editSpecializations" bindLabel="title"   bindValue="title" [items]="specializations" placeholder="Select specializations" [(ngModel)]="editForm.dmc_specializations" name="dmc_specializations" [multiple]="true" [class.is-invalid]="editError.dmc_specializations">
                 </ng-select>
                 <div class="invalid-feedback" *ngIf="editError.dmc_specializations">{{ editError.dmc_specializations }}</div>
                 <small class="text-muted">Select your area of expertise</small>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label for="editServices" class="form-label">Services Offered</label>
-                <ng-select id="editServices" [items]="servicesOffered" placeholder="Select services" [(ngModel)]="editForm.services_offered" name="services_offered" [multiple]="true" [class.is-invalid]="editError.services_offered">
-                </ng-select>
-                <div class="invalid-feedback" *ngIf="editError.services_offered">{{ editError.services_offered }}</div>
-                <small class="text-muted">Select all services you provide</small>
               </div>
             </div>
           </div>
