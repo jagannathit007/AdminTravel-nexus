@@ -68,6 +68,7 @@ import { RegistrationReportComponent } from './views/pages/reports/registration-
 import { PaymentReportComponent } from './views/pages/reports/payment-report/payment-report.component';
 import { StallBookingReportComponent } from './views/pages/reports/stall-booking-report/stall-booking-report.component';
 import { OneToOneReportComponent } from './views/pages/reports/one-to-one-report/one-to-one-report.component';
+import { EventReviewReportComponent } from './views/pages/reports/event-review-report/event-review-report.component';
 
 
 export const routes: Routes = [
@@ -151,7 +152,8 @@ export const routes: Routes = [
       { path: 'reports/registration', component: RegistrationReportComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       { path: 'reports/payment', component: PaymentReportComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
       { path: 'reports/stall-booking', component: StallBookingReportComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
-      { path: 'reports/one-to-one', component: OneToOneReportComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } }
+      { path: 'reports/one-to-one', component: OneToOneReportComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } },
+      { path: 'reports/event-review', component: EventReviewReportComponent, canActivate: [RoleGuard], data: { roles: ['admin', 'advisoryBoard', 'supportDirector', 'supportAmbassador'] } }
     ],
   },
 ];

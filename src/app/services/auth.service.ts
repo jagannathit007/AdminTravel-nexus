@@ -976,6 +976,29 @@ export class EventService {
       this.headers.push({ Authorization: `Bearer ${token}` });
     }
   };
+  async getEventReviews(eventId: string, page: number = 1, limit: number = 10, search: string = '', status: string = ''): Promise<any> {
+    try {
+      this.getHeaders();
+      let url = `${apiEndpoints.GET_REVIEW_LIST}?eventId=${eventId}&page=${page}&limit=${limit}`;
+      if (search) url += `&search=${search}`;
+      if (status) url += `&status=${status}`;
+
+      const response = await this.apiManager.request(
+        {
+          url: url,
+          method: 'GET',
+        },
+        null,
+        this.headers
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Get Event Reviews Error:', error);
+      swalHelper.showToast('Failed to fetch event reviews', 'error');
+      throw error;
+    }
+  }
+
   async getRegistrationsByEventId(eventId: string, page: number = 1, limit: number = 10, status?: string, paymentStatus?: string, search: string = ""): Promise<any> {
     try {
       this.getHeaders();

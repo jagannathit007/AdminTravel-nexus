@@ -1,0 +1,111 @@
+<div class="container-fluid p-0">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title mb-0">Event Review Report</h4>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Event Filter -->
+                        <div class="col-md-4">
+                            <label class="form-label">Select Event</label>
+                            <ng-select [items]="events" bindLabel="title" bindValue="_id" [(ngModel)]="selectedEventId"
+                                (change)="onFilterChange()" placeholder="Choose an event">
+                            </ng-select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" *ngIf="selectedEventId">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <!-- Loading Spinner -->
+                    <div *ngIf="loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div *ngIf="!loading && (!reviews?.docs || reviews?.docs?.length === 0)" class="text-center py-5">
+                        <p class="text-muted mb-0">No reviews found.</p>
+                    </div>
+
+                    <!-- Data Table -->
+                    <div class="table-responsive" *ngIf="!loading && reviews?.docs?.length > 0">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>User</th>
+                                    <th style="min-width: 120px;">Rating</th> <!-- Changed title to Rating -->
+                                    <th>Review/Feedback</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let review of reviews.docs | paginate: {
+                                    itemsPerPage: limit,
+                                    currentPage: page,
+                                    totalItems: reviews.totalDocs
+                                }">
+                                    <td>
+                                        <div class="user-cell">
+                                            <img [src]="getImageUrl(review.userId?.profilePic) || 'assets/images/user-dummy-img.jpg'"
+                                                class="user-avatar" alt="Profile"
+                                                onerror="this.src='assets/images/user-dummy-img.jpg'">
+                                            <div class="user-info">
+                                                <span class="user-name">{{review.userId?.name || 'N/A'}}</span>
+                                                <span class="user-email">{{review.userId?.email || 'N/A'}}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center" title="{{review.star || 0}} Stars">
+                                            <ng-container *ngFor="let star of [1,2,3,4,5]">
+                                                <i class="fas fa-star"
+                                                    [ngClass]="(review.star || 0) >= star ? 'text-warning' : 'text-muted'"
+                                                    style="opacity: 0.9;"></i>
+                                            </ng-container>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="text-muted" style="max-width: 350px; white-space: normal;">
+                                            {{review.description}}
+                                        </div>
+                                    </td>
+                                    <td>{{review.createdAt | date:'mediumDate'}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- Pagination -->
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <p class="text-muted mb-0">
+                                Showing {{ (page - 1) * limit + 1 }} - {{ Math.min(page * limit, reviews.totalDocs) }}
+                                of {{ reviews.totalDocs }} reviews
+                            </p>
+                            <pagination-controls (pageChange)="changePage($event)" previousLabel="Prev"
+                                nextLabel="Next">
+                            </pagination-controls>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+     <div class="row mt-5" *ngIf="!selectedEventId">
+        <div class="col-12 text-center py-5">
+            <div class="empty-state">
+                <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                <h5>Select an event to view review reports</h5>
+                <p class="text-muted">Choose an event from the dropdown above to see its review report.</p>
+            </div>
+        </div>
+    </div>
+</div>

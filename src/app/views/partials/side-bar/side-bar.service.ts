@@ -340,6 +340,11 @@ export class SideBarService {
               link: 'reports/one-to-one',
               icon: 'user-check',
             },
+            {
+              title: 'Event Review Report',
+              link: 'reports/event-review',
+              icon: 'message-square',
+            },
           ]
         },
       ],

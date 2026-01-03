@@ -1,0 +1,64 @@
+.card {
+    border-radius: 10px;
+}
+
+.table thead th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+.badge {
+    padding: 0.5em 0.8em;
+}
+
+.empty-state {
+    opacity: 0.6;
+}
+
+/* User Avatar Styling */
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.95rem;
+}
+
+.user-email {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+}
+
+/* Star Rating */
+.text-warning {
+    color: #ffc107 !important;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+.fa-star {
+    font-size: 1rem;
+    margin-right: 2px;
+}

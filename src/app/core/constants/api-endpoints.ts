@@ -276,6 +276,8 @@ class ApiEndpoints {
   public GET_STALL_REPORT: string = `${this.PATH}/event/reports/stalls`;
   public GET_ONE_TO_ONE_REPORT: string = `${this.PATH}/event/reports/one-to-one`;
 
+  //review
+  public GET_REVIEW_LIST: string = `${this.PATH1}/mobile/event/list`;
 };
 
 export let apiEndpoints = new ApiEndpoints();
